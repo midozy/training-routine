@@ -309,7 +309,6 @@
 				);
 				MARKETING_VERSION = 1.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
-				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = P59JWL8A4S;
 				PRODUCT_BUNDLE_IDENTIFIER = com.elsamman.heavy;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -332,7 +331,6 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = P59JWL8A4S;
 				PRODUCT_BUNDLE_IDENTIFIER = com.elsamman.heavy;
 				PRODUCT_NAME = "$(TARGET_NAME)";

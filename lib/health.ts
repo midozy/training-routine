@@ -44,7 +44,11 @@ export function setHealthPrefs(patch: Partial<HealthPrefs>): HealthPrefs {
 
 export async function healthAvailable(): Promise<boolean> {
   if (!isNative()) return false;
-  try { return (await HeavyHealth.isAvailable()).available; } catch { return false; }
+  try { return (await HeavyHealth.isAvailable()).available; }
+  catch (e) {
+    console.warn('[health] isAvailable failed:', (e as Error)?.message ?? e);
+    return false;
+  }
 }
 
 /** Shows Apple's permission sheet (first time only), turns sync on and runs a full import. */

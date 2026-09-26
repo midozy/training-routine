@@ -14,9 +14,12 @@ export const isNative = () => Capacitor.isNativePlatform();
 
 const REST_ID = 4201;
 
-export async function initNative() {
+export async function initNative() { /* status bar style is set by applyTheme() */ }
+
+/** Style.Dark = light text (for dark backgrounds); Style.Light = dark text. */
+export async function setStatusBarDark(dark: boolean) {
   if (!isNative()) return;
-  try { await StatusBar.setStyle({ style: Style.Light }); } catch {}
+  try { await StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light }); } catch {}
 }
 
 export async function tap(kind: 'light' | 'medium' | 'heavy' = 'light') {
@@ -58,4 +61,15 @@ export async function scheduleRestAlert(endAt: number, nextUp: string) {
 export async function cancelRestAlert() {
   if (!isNative()) return;
   try { await LocalNotifications.cancel({ notifications: [{ id: REST_ID }] }); } catch {}
+}
+
+/** For the Profile screen: 'granted' | 'denied' | 'prompt' | 'web'. */
+export async function notifyStatus(): Promise<'granted' | 'denied' | 'prompt' | 'web'> {
+  if (!isNative()) return 'web';
+  try { const p = await LocalNotifications.checkPermissions(); return p.display === 'granted' ? 'granted' : p.display === 'denied' ? 'denied' : 'prompt'; }
+  catch { return 'prompt'; }
+}
+export async function requestNotify() {
+  if (!isNative()) return false;
+  try { return (await LocalNotifications.requestPermissions()).display === 'granted'; } catch { return false; }
 }

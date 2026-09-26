@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.elsamman.trainingroutine',
-  appName: 'Training Routine',
+  appId: 'com.elsamman.heavy',
+  appName: 'Heavy',
   webDir: 'out',
   ios: {
     contentInset: 'never',

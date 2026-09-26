@@ -1,18 +1,42 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { TrendChart, Columns } from '@/components/Charts';
 import { PageHead } from '@/components/Shell';
-import { supabase, fetchAll, epley, fmtKg } from '@/lib/supabase';
+import { usePrefs } from '@/lib/prefs';
+import { supabase, fetchAll, epley } from '@/lib/supabase';
 
 type Log = { session_id: number; exercise_id: number; weight_kg: number; reps: number; logged_at: string };
 type Ex = { id: number; name: string; muscle: string };
 const MUSCLES = ['Chest', 'Back', 'Shoulders', 'Rear Delts', 'Traps', 'Biceps', 'Triceps', 'Quads', 'Hamstrings', 'Calves'];
-
 const weekStart = (d: Date) => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 1) % 7)); return x; }; // Saturday
-const short = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+const short = (d: Date | string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
-export default function Progress() {
+export default function ProgressPage() {
+  return <Suspense fallback={<div className="eyebrow pt-10 px-1">Loading</div>}><Progress /></Suspense>;
+}
+
+function Progress() {
+  const router = useRouter();
+  const tab = useSearchParams().get('tab') === 'body' ? 'body' : 'strength';
+  return (
+    <div>
+      <PageHead eyebrow="Your numbers" title="Progress" />
+      <div className="grid grid-cols-2 p-1 rounded-xl bg-card2 mb-4" role="tablist">
+        {(['strength', 'body'] as const).map((t) => (
+          <button key={t} role="tab" aria-selected={tab === t} onClick={() => router.replace(t === 'body' ? '/progress?tab=body' : '/progress')}
+            className={`h-9 rounded-[10px] text-[14px] font-semibold capitalize transition ${tab === t ? 'bg-card shadow-sm text-ink' : 'text-sub'}`}>{t}</button>
+        ))}
+      </div>
+      {tab === 'strength' ? <Strength /> : <Body />}
+    </div>
+  );
+}
+
+/* ================= Strength ================= */
+function Strength() {
+  const { w, units } = usePrefs();
   const [logs, setLogs] = useState<Log[] | null>(null);
   const [exs, setExs] = useState<Ex[]>([]);
   const [sel, setSel] = useState<number | null>(null);
@@ -20,7 +44,7 @@ export default function Progress() {
   useEffect(() => {
     (async () => {
       const [{ data: e }, l] = await Promise.all([
-        supabase.from('exercises').select('*').order('name'),
+        supabase.from('exercises').select('id, name, muscle').order('name'),
         fetchAll<Log>((a, b) => supabase.from('set_logs').select('session_id, exercise_id, weight_kg, reps, logged_at').order('logged_at').range(a, b)),
       ]);
       setExs(e ?? []);
@@ -33,7 +57,6 @@ export default function Progress() {
   }, []);
 
   const trained = useMemo(() => new Set((logs ?? []).map((l) => l.exercise_id)), [logs]);
-
   const series = useMemo(() => {
     if (!logs || sel == null) return [];
     const by = new Map<number, { date: Date; top: number; e1rm: number; vol: number }>();
@@ -42,8 +65,8 @@ export default function Progress() {
       g.top = Math.max(g.top, l.weight_kg); g.e1rm = Math.max(g.e1rm, epley(l.weight_kg, l.reps)); g.vol += l.weight_kg * l.reps;
       by.set(l.session_id, g);
     }
-    return [...by.values()].map((g) => ({ label: short(g.date), top: g.top, e1rm: Math.round(g.e1rm * 10) / 10, vol: Math.round(g.vol) }));
-  }, [logs, sel]);
+    return [...by.values()].map((g) => ({ label: short(g.date), top: w(g.top), e1rm: Math.round(w(g.e1rm) * 10) / 10, vol: Math.round(w(g.vol)) }));
+  }, [logs, sel, w]);
 
   const weekly = useMemo(() => {
     if (!logs) return { cols: [], muscles: [] as { m: string; now: number; avg: number }[] };
@@ -58,15 +81,14 @@ export default function Progress() {
       const m = muscleOf.get(l.exercise_id) ?? 'Other';
       (per[m] ??= {})[t] = (per[m][t] ?? 0) + 1;
     }
-    const cols = weeks.map((t) => ({ label: short(new Date(t)), sets: total[t] ?? 0 }));
     const now = weeks.at(-1)!;
-    const muscles = MUSCLES.map((m) => ({ m, now: per[m]?.[now] ?? 0, avg: weeks.slice(0, 7).reduce((a, t) => a + (per[m]?.[t] ?? 0), 0) / 7 }))
-      .filter((x) => x.now || x.avg);
-    return { cols, muscles };
+    return {
+      cols: weeks.map((t) => ({ label: short(new Date(t)), sets: total[t] ?? 0 })),
+      muscles: MUSCLES.map((m) => ({ m, now: per[m]?.[now] ?? 0, avg: weeks.slice(0, 7).reduce((a, t) => a + (per[m]?.[t] ?? 0), 0) / 7 })).filter((x) => x.now || x.avg),
+    };
   }, [logs, exs]);
 
-  if (!logs) return <div className="eyebrow pt-10">Loading</div>;
-
+  if (!logs) return <div className="eyebrow px-1">Loading</div>;
   const best = series.reduce((a, s) => Math.max(a, s.e1rm), 0);
   const heaviest = series.reduce((a, s) => Math.max(a, s.top), 0);
   const first = series[0]?.e1rm ?? 0;
@@ -74,68 +96,193 @@ export default function Progress() {
   const maxM = Math.max(1, ...weekly.muscles.map((x) => Math.max(x.now, x.avg)));
 
   return (
-    <div>
-      <PageHead eyebrow="Progress" title="Stats" />
-
-      <label className="block">
-        <span className="eyebrow">Exercise</span>
-        <select className="field font-display font-bold uppercase text-2xl tracking-wide appearance-none" value={sel ?? ''} onChange={(e) => setSel(Number(e.target.value))}>
-          {exs.filter((e) => trained.has(e.id)).length > 0 && (
-            <optgroup label="Logged">{exs.filter((e) => trained.has(e.id)).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</optgroup>
-          )}
+    <>
+      <div className="card p-1">
+        <select className="w-full h-12 bg-transparent px-3 font-display font-bold uppercase text-xl tracking-wide text-ink outline-none" value={sel ?? ''} onChange={(e) => setSel(Number(e.target.value))}>
+          {exs.filter((e) => trained.has(e.id)).length > 0 && <optgroup label="Logged">{exs.filter((e) => trained.has(e.id)).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</optgroup>}
           <optgroup label="Not yet logged">{exs.filter((e) => !trained.has(e.id)).map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</optgroup>
         </select>
-      </label>
-
-      <div className="grid grid-cols-3 mt-6 border-t-2 border-ink">
-        <Stat label="Est. 1RM" value={best ? fmtKg(Math.round(best)) : '—'} unit="kg" />
-        <Stat label="Heaviest" value={heaviest ? fmtKg(heaviest) : '—'} unit="kg" border />
-        <Stat label="Change" value={series.length > 1 ? `${change >= 0 ? '+' : ''}${change.toFixed(0)}` : '—'} unit="%" border />
       </div>
 
-      <section className="mt-8">
-        <div className="eyebrow mb-3">Strength per session <span className="text-ink">— est. 1RM</span> · <span>top set dashed</span></div>
-        {series.length ? <TrendChart data={series} main={{ key: 'e1rm', name: 'Est. 1RM' }} secondary={{ key: 'top', name: 'Top set' }} />
-          : <p className="py-10 text-center text-sub border-y border-rule">No sets logged for this exercise yet.</p>}
+      <div className="grid grid-cols-3 gap-2 mt-3">
+        <Stat label="Est. 1RM" value={best ? String(Math.round(best)) : '—'} unit={units} />
+        <Stat label="Heaviest" value={heaviest ? String(Math.round(heaviest * 10) / 10) : '—'} unit={units} />
+        <Stat label="Change" value={series.length > 1 ? `${change >= 0 ? '+' : ''}${change.toFixed(0)}` : '—'} unit="%" />
+      </div>
+
+      <section className="card p-4 mt-3">
+        <div className="eyebrow mb-3">Strength per session · est. 1RM <span className="normal-case tracking-normal">(dashed = top set)</span></div>
+        {series.length ? <TrendChart data={series} main={{ key: 'e1rm', name: 'Est. 1RM' }} secondary={{ key: 'top', name: 'Top set' }} unit={units} />
+          : <p className="py-10 text-center text-sub">No sets logged for this exercise yet.</p>}
       </section>
 
       {series.length > 0 && (
-        <section className="mt-8">
-          <div className="eyebrow mb-3">Volume per session · kg × reps</div>
-          <TrendChart data={series} main={{ key: 'vol', name: 'Volume' }} height={160} />
+        <section className="card p-4 mt-3">
+          <div className="eyebrow mb-3">Volume per session · {units} × reps</div>
+          <TrendChart data={series} main={{ key: 'vol', name: 'Volume' }} height={160} unit={units} />
         </section>
       )}
 
-      <section className="mt-10 border-t-2 border-ink pt-4">
+      <section className="card p-4 mt-3">
         <div className="eyebrow mb-3">Total sets per week · weeks start Saturday</div>
         <Columns data={weekly.cols} dataKey="sets" unit=" sets" />
       </section>
 
-      <section className="mt-10 border-t-2 border-ink pt-4">
-        <div className="flex justify-between eyebrow mb-4"><span>This week by muscle</span><span>▮ now  ┃ 7-wk avg</span></div>
+      <section className="card p-4 mt-3">
+        <div className="flex justify-between eyebrow mb-4"><span>This week by muscle</span><span className="normal-case tracking-normal">bar = now · tick = 7-wk avg</span></div>
         {weekly.muscles.length === 0 && <p className="text-sub">Log a workout to see weekly volume.</p>}
         <div className="space-y-3">
           {weekly.muscles.map(({ m, now, avg }) => (
-            <div key={m} className="grid grid-cols-[92px_1fr_32px] items-center gap-3">
-              <span className="font-display font-bold uppercase tracking-wide">{m}</span>
-              <div className="relative h-5 bg-paper-2">
-                <div className="absolute inset-y-0 left-0 bg-ink" style={{ width: `${(now / maxM) * 100}%` }} />
-                <div className="absolute -inset-y-1 w-[3px] bg-volt outline outline-1 outline-ink" style={{ left: `calc(${(avg / maxM) * 100}% - 1px)` }} />
+            <div key={m} className="grid grid-cols-[92px_1fr_28px] items-center gap-3">
+              <span className="text-[14px] font-medium">{m}</span>
+              <div className="relative h-4 rounded-full bg-card2">
+                <div className="absolute inset-y-0 left-0 rounded-full bg-ink" style={{ width: `${(now / maxM) * 100}%` }} />
+                <div className="absolute -inset-y-1 w-[3px] rounded bg-volt ring-1 ring-ink" style={{ left: `calc(${(avg / maxM) * 100}% - 1px)` }} />
               </div>
               <span className="num text-lg text-right">{now}</span>
             </div>
           ))}
         </div>
       </section>
+    </>
+  );
+}
+
+function Stat({ label, value, unit }: { label: string; value: string; unit: string }) {
+  return (
+    <div className="card p-3">
+      <div className="eyebrow">{label}</div>
+      <div className="num text-[30px] leading-none mt-2">{value}<span className="text-xs text-sub font-sans ml-0.5">{value !== '—' ? unit : ''}</span></div>
     </div>
   );
 }
 
-function Stat({ label, value, unit, border }: { label: string; value: string; unit: string; border?: boolean }) {
+/* ================= Body ================= */
+const FIELDS = [
+  { key: 'chest_cm', label: 'Chest' }, { key: 'shoulders_cm', label: 'Shoulders' }, { key: 'arm_cm', label: 'Arm' }, { key: 'waist_cm', label: 'Waist' },
+  { key: 'thigh_cm', label: 'Thigh' }, { key: 'calf_cm', label: 'Calf' }, { key: 'neck_cm', label: 'Neck' }, { key: 'body_fat_pct', label: 'Body fat' },
+] as const;
+type BW = { id: number; logged_on: string; weight_kg: number };
+type M = { id: number; logged_on: string } & Record<(typeof FIELDS)[number]['key'], number | null>;
+const today = () => new Date().toLocaleDateString('en-CA');
+
+function Body() {
+  const { fw, w, toKg, units } = usePrefs();
+  const [bw, setBw] = useState<BW[]>([]);
+  const [ms, setMs] = useState<M[]>([]);
+  const [val, setVal] = useState('');
+  const [date, setDate] = useState(today());
+  const [form, setForm] = useState<Record<string, string>>({});
+  const [showM, setShowM] = useState(false);
+
+  async function load() {
+    const [{ data: b }, { data: m }] = await Promise.all([
+      supabase.from('bodyweight_logs').select('*').order('logged_on'),
+      supabase.from('measurements').select('*').order('logged_on'),
+    ]);
+    setBw((b ?? []).map((x) => ({ ...x, weight_kg: Number(x.weight_kg) })));
+    setMs(m ?? []);
+  }
+  useEffect(() => { load(); }, []);
+
+  async function saveWeight(e: React.FormEvent) {
+    e.preventDefault();
+    const v = Number(val.replace(',', '.'));
+    if (!v) return;
+    const { error } = await supabase.from('bodyweight_logs').upsert({ logged_on: date, weight_kg: toKg(v) }, { onConflict: 'user_id,logged_on' });
+    if (error) return alert(error.message);
+    setVal(''); load();
+  }
+  async function saveMeasurements(e: React.FormEvent) {
+    e.preventDefault();
+    const row: Record<string, number | string | null> = { logged_on: date };
+    for (const f of FIELDS) row[f.key] = form[f.key] ? Number(form[f.key].replace(',', '.')) : null;
+    const { error } = await supabase.from('measurements').upsert(row, { onConflict: 'user_id,logged_on' });
+    if (error) return alert(error.message);
+    setForm({}); setShowM(false); load();
+  }
+  async function removeBw(id: number) {
+    if (!confirm('Delete this entry?')) return;
+    await supabase.from('bodyweight_logs').delete().eq('id', id); load();
+  }
+
+  const last = bw.at(-1);
+  const weekAgo = bw.filter((x) => new Date(x.logged_on) <= new Date(Date.now() - 7 * 864e5)).at(-1);
+  const r7 = bw.filter((x) => new Date(x.logged_on).getTime() > Date.now() - 7 * 864e5);
+  const avg7 = r7.length ? r7.reduce((a, x) => a + x.weight_kg, 0) / r7.length : null;
+  const delta = last && weekAgo ? w(last.weight_kg) - w(weekAgo.weight_kg) : null;
+  const lastM = ms.at(-1), prevM = ms.at(-2);
+
   return (
-    <div className={`py-3 ${border ? 'pl-3 border-l border-rule' : ''}`}>
-      <div className="eyebrow">{label}</div>
-      <div className="num text-4xl mt-1">{value}<span className="text-sm text-sub font-sans ml-0.5">{value !== '—' ? unit : ''}</span></div>
-    </div>
+    <>
+      <section className="card p-5">
+        <div className="eyebrow">Latest{last ? ` · ${short(last.logged_on)}` : ''}</div>
+        <div className="flex items-end gap-2 mt-2">
+          <span className="num text-[80px] leading-[.8]">{last ? fw(last.weight_kg) : '—'}</span>
+          <span className="text-sub mb-1">{units}</span>
+          {delta != null && <span className={`ml-auto num text-xl px-2.5 py-0.5 rounded-lg ${delta <= 0 ? 'bg-volt text-[#111]' : 'bg-card2'}`}>{delta >= 0 ? '+' : ''}{delta.toFixed(1)} <span className="text-xs font-sans">/wk</span></span>}
+        </div>
+        <div className="text-[14px] text-sub mt-3">7-day average · <span className="text-ink font-semibold">{avg7 ? `${fw(avg7)} ${units}` : '—'}</span></div>
+        <form onSubmit={saveWeight} className="mt-4 grid grid-cols-[1fr_1fr_auto] gap-2">
+          <input className="field" type="date" value={date} max={today()} onChange={(e) => setDate(e.target.value)} aria-label="Date" />
+          <input className="field num text-xl" inputMode="decimal" placeholder={units} value={val} onChange={(e) => setVal(e.target.value)} aria-label={`Weight in ${units}`} />
+          <button className="btn-ink !h-12 px-4 !text-base">Log</button>
+        </form>
+      </section>
+
+      {bw.length > 1 && (
+        <section className="card p-4 mt-3">
+          <div className="eyebrow mb-3">Bodyweight trend</div>
+          <TrendChart data={bw.map((x) => ({ label: short(x.logged_on), v: w(x.weight_kg) }))} main={{ key: 'v', name: 'Bodyweight' }} height={180} unit={units} />
+        </section>
+      )}
+
+      <div className="flex items-end justify-between px-4 mt-7 mb-2">
+        <span className="eyebrow">Measurements{lastM ? ` · ${short(lastM.logged_on)}` : ''}</span>
+        <button className="text-[15px] font-semibold text-ink" onClick={() => setShowM(!showM)}>{showM ? 'Cancel' : '+ New'}</button>
+      </div>
+      {showM ? (
+        <form onSubmit={saveMeasurements} className="card p-4">
+          <div className="grid grid-cols-2 gap-3">
+            {FIELDS.map((f) => (
+              <label key={f.key}><span className="text-[13px] text-sub">{f.label} ({f.key === 'body_fat_pct' ? '%' : 'cm'})</span>
+                <input className="field num text-xl mt-1" inputMode="decimal" value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
+              </label>
+            ))}
+          </div>
+          <button className="btn-ink w-full mt-4">Save for {short(date)}</button>
+        </form>
+      ) : lastM ? (
+        <div className="group">
+          {FIELDS.map((f) => {
+            const v = lastM[f.key], p = prevM?.[f.key];
+            if (v == null) return null;
+            const d = p != null ? Number(v) - Number(p) : null;
+            return (
+              <div key={f.key} className="row">
+                <span className="flex-1">{f.label}</span>
+                {d != null && d !== 0 && <span className="text-[13px] text-sub">{d > 0 ? '+' : ''}{d.toFixed(1)}</span>}
+                <span className="num text-xl w-16 text-right">{Number(v)}<span className="text-xs text-sub font-sans ml-0.5">{f.key === 'body_fat_pct' ? '%' : 'cm'}</span></span>
+              </div>
+            );
+          })}
+        </div>
+      ) : <div className="card p-4 text-sub">No measurements yet.</div>}
+
+      {bw.length > 0 && (
+        <>
+          <div className="eyebrow px-4 mt-7 mb-2">Weigh-ins</div>
+          <div className="group">
+            {[...bw].reverse().slice(0, 14).map((x) => (
+              <div key={x.id} className="row">
+                <span className="flex-1">{short(x.logged_on)}</span>
+                <span className="num text-xl">{fw(x.weight_kg)} <span className="text-xs text-sub font-sans">{units}</span></span>
+                <button className="text-sub px-1" aria-label="Delete entry" onClick={() => removeBw(x.id)}>✕</button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </>
   );
 }

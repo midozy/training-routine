@@ -3,142 +3,160 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { PageHead } from '@/components/Shell';
+import { PageHead, SectionLabel } from '@/components/Shell';
 import ExerciseGuide from '@/components/ExerciseGuide';
-import { supabase, getSettings, type Plan, type PlanDay, type PlanExercise, type Settings } from '@/lib/supabase';
+import { usePrefs } from '@/lib/prefs';
+import { supabase, type Plan, type PlanDay, type PlanExercise } from '@/lib/supabase';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
 export default function PlanPage() {
   const router = useRouter();
-  const [settings, setSettings] = useState<Settings | null>(null);
+  const { settings, save } = usePrefs();
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [viewId, setViewId] = useState<number | null>(null);
   const [days, setDays] = useState<PlanDay[]>([]);
   const [exs, setExs] = useState<PlanExercise[]>([]);
   const [open, setOpen] = useState<number | null>(null);
   const [guide, setGuide] = useState<PlanExercise | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  async function loadPlan(planId: number) {
-    const { data: d } = await supabase.from('plan_days').select('*').eq('plan_id', planId).order('position');
+  async function loadPlans() {
+    const { data } = await supabase.from('plans').select('*').eq('archived', false).order('id');
+    setPlans(data ?? []);
+    return data ?? [];
+  }
+  async function loadPlan(id: number) {
+    const { data: d } = await supabase.from('plan_days').select('*').eq('plan_id', id).order('position');
     setDays(d ?? []);
     const { data: e } = await supabase.from('plan_exercises').select('*').in('plan_day_id', (d ?? []).map((x) => x.id)).order('position');
     setExs(e ?? []);
   }
 
   useEffect(() => {
-    (async () => {
-      const s = await getSettings();
-      setSettings(s);
-      const { data: p } = await supabase.from('plans').select('*').order('id');
-      setPlans(p ?? []);
-      if (s.active_plan_id) loadPlan(s.active_plan_id);
-    })();
-  }, []);
+    if (!settings) return;
+    loadPlans().then((ps) => {
+      const id = viewId ?? settings.active_plan_id ?? ps[0]?.id ?? null;
+      setViewId(id);
+      if (id) loadPlan(id);
+    });
+  }, [settings?.active_plan_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function save(patch: Partial<Settings>) {
-    const next = { ...settings!, ...patch };
-    setSettings(next);
-    await supabase.from('user_settings').update({ ...patch, updated_at: new Date().toISOString() }).eq('user_id', next.user_id);
+  const plan = plans.find((p) => p.id === viewId);
+  const isActive = plan && settings?.active_plan_id === plan.id;
+  const mine = plan?.owner_id != null;
+
+  async function view(id: number) { setViewId(id); setOpen(null); loadPlan(id); }
+  async function activate() { if (plan) await save({ active_plan_id: plan.id, next_position: 0 }); }
+
+  async function duplicate() {
+    if (!plan) return;
+    const name = prompt('Name for the copy', `${plan.name} (copy)`); if (!name) return;
+    setBusy(true);
+    const { data, error } = await supabase.rpc('duplicate_plan', { src: plan.id, new_name: name });
+    setBusy(false);
+    if (error) return alert(error.message);
+    await loadPlans(); view(data as number);
   }
-
-  async function switchPlan(id: number) {
-    if (id === settings?.active_plan_id) return;
-    await save({ active_plan_id: id, next_position: 0 });
-    setOpen(null); loadPlan(id);
+  async function reset() {
+    if (!plan) return;
+    if (!confirm(`Reset “${plan.name}” to the original? Your edits to this plan are replaced. Logged workouts are kept.`)) return;
+    setBusy(true);
+    const { error } = await supabase.rpc('reset_plan', { p: plan.id });
+    setBusy(false);
+    if (error) return alert(error.message);
+    loadPlan(plan.id);
   }
-
+  async function remove() {
+    if (!plan || isActive) return;
+    if (!confirm(`Delete “${plan.name}”? Logged workouts are kept.`)) return;
+    await supabase.from('plans').delete().eq('id', plan.id);
+    const ps = await loadPlans(); const next = settings?.active_plan_id ?? ps[0]?.id; if (next) view(next);
+  }
+  async function newPlan() {
+    const name = prompt('Plan name', 'My plan'); if (!name) return;
+    const { data: u } = await supabase.auth.getUser();
+    const { data, error } = await supabase.from('plans').insert({ name, owner_id: u.user!.id, description: null }).select('id').single();
+    if (error) return alert(error.message);
+    await supabase.from('plan_days').insert({ plan_id: data.id, position: 0, name: 'Day 1', is_rest: false });
+    router.push(`/plan/edit?id=${data.id}`);
+  }
   async function startDay(d: PlanDay) {
     const { data } = await supabase.from('workout_sessions').insert({ plan_day_id: d.id, day_name: d.name }).select('id').single();
     if (data) router.push(`/workout?id=${data.id}`);
   }
 
-  async function deleteAccount() {
-    if (!confirm('Delete your account? This permanently erases every workout, set, bodyweight entry and measurement.')) return;
-    if (prompt('Type DELETE to confirm') !== 'DELETE') return;
-    const { error } = await supabase.rpc('delete_my_account');
-    if (error) return alert(error.message);
-    await supabase.auth.signOut();
-    router.replace('/login');
-  }
-
-  if (!settings) return <div className="eyebrow pt-10">Loading</div>;
+  if (!settings) return <div className="eyebrow pt-10 px-1">Loading</div>;
 
   return (
     <div>
-      <PageHead eyebrow="Programme" title="Plan" />
+      <PageHead eyebrow="Programme" title="Plan" right={<button className="text-[16px] font-semibold text-ink" onClick={newPlan}>+ New</button>} />
 
-      <div className="grid grid-cols-2 border-2 border-ink">
-        {plans.map((p, i) => {
-          const on = settings.active_plan_id === p.id;
+      <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1">
+        {plans.map((p) => {
+          const active = settings.active_plan_id === p.id;
           return (
-            <button key={p.id} onClick={() => switchPlan(p.id)} className={`p-3 text-left ${i ? 'border-l-2 border-ink' : ''} ${on ? 'bg-ink text-paper' : ''}`}>
-              <div className={`display text-3xl ${on ? 'text-volt' : ''}`}>{p.name.replace('High Volume Pro ', '')}</div>
-              <div className={`text-xs mt-1 ${on ? 'text-paper/70' : 'text-sub'}`}>{p.description}</div>
+            <button key={p.id} onClick={() => view(p.id)}
+              className={`shrink-0 min-w-[46%] text-left rounded-2xl p-4 transition ${viewId === p.id ? 'bg-inv text-on-inv' : 'card'}`}>
+              <div className="flex items-center gap-2">
+                <span className="display text-[26px] leading-none truncate">{p.name}</span>
+                {active && <span className="shrink-0 w-5 h-5 rounded-full bg-volt text-[#111] grid place-items-center text-[12px] font-bold">✓</span>}
+              </div>
+              <div className={`text-[12px] mt-1.5 ${viewId === p.id ? 'opacity-70' : 'text-sub'}`}>{p.description ?? (active ? 'Active plan' : '')}</div>
             </button>
           );
         })}
       </div>
 
-      <div className="mt-8 border-t-2 border-ink">
-        {days.map((d) => {
-          const list = exs.filter((e) => e.plan_day_id === d.id);
-          const isNext = d.position === settings.next_position;
-          const isOpen = open === d.id;
-          return (
-            <div key={d.id} className="border-b border-rule">
-              <button className="w-full flex items-center gap-4 py-4 text-left" onClick={() => setOpen(isOpen ? null : d.id)}>
-                <span className={`num text-2xl w-10 h-10 grid place-items-center ${isNext ? 'bg-volt' : ''}`}>{pad(d.position + 1)}</span>
-                <span className="flex-1">
-                  <span className="font-display font-bold uppercase text-2xl tracking-wide leading-none">{d.name}</span>
-                  <span className="block text-xs text-sub mt-1">{isNext ? 'Up next · ' : ''}{d.is_rest ? 'Recovery' : `${list.length} exercises · ${list.reduce((a, e) => a + e.target_reps.length, 0)} sets`}</span>
-                </span>
-                <span className="num text-2xl">{isOpen ? '−' : '+'}</span>
-              </button>
-              {isOpen && (
-                <div className="pb-5 pl-14">
-                  {list.map((e, i) => (
-                    <button key={e.id} onClick={() => setGuide(e)} className="block w-full text-left py-2 border-t border-rule first:border-t-0">
-                      <div className="flex gap-3 items-baseline">
-                        <span className="num text-sub w-5">{i + 1}</span>
-                        <span className="flex-1 text-[15px]">{e.label} <span className="text-sub text-xs">ⓘ</span></span>
-                        <span className="num">{e.target_reps.join('·')}</span>
-                      </div>
-                      {e.cue && <div className="ml-8 text-xs text-sub mt-0.5">▲ {e.cue}</div>}
-                    </button>
-                  ))}
-                  <div className="flex gap-2 mt-3">
-                    {!isNext && <button className="btn-line h-11 text-base flex-1" onClick={() => save({ next_position: d.position })}>Set as next</button>}
-                    {!d.is_rest && <button className="btn-ink h-11 text-base flex-1" onClick={() => startDay(d)}>Start now →</button>}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <section className="mt-10">
-        <div className="eyebrow mb-3">Default rest between sets</div>
-        <div className="grid grid-cols-4 border-2 border-ink">
-          {[60, 90, 120, 180].map((s, i) => (
-            <button key={s} onClick={() => save({ default_rest_seconds: s })}
-              className={`h-12 num text-xl ${i ? 'border-l-2 border-ink' : ''} ${settings.default_rest_seconds === s ? 'bg-volt' : ''}`}>{s}s</button>
-          ))}
-        </div>
-        <p className="text-xs text-sub mt-2">Trainer-specified rests (e.g. dips, 20 s) always win.</p>
-      </section>
-
-      <section className="mt-12 border-t-2 border-ink pt-4">
-        <div className="eyebrow mb-3">Account</div>
-        <div className="flex flex-col items-start gap-4">
-          <button className="eyebrow text-ink underline underline-offset-4" onClick={() => supabase.auth.signOut()}>Sign out</button>
-          <div className="flex gap-5">
-            <Link href="/privacy" className="eyebrow text-ink underline underline-offset-4">Privacy</Link>
-            <Link href="/terms" className="eyebrow text-ink underline underline-offset-4">Terms & health</Link>
+      {plan && (
+        <>
+          <div className="flex flex-wrap gap-2 mt-3">
+            {!isActive && <button className="pill !bg-volt !text-[#111]" onClick={activate}>Use this plan</button>}
+            {mine && <Link className="pill" href={`/plan/edit?id=${plan.id}`}>✎ Edit</Link>}
+            <button className="pill" onClick={duplicate} disabled={busy}>Duplicate</button>
+            {mine && plan.source_plan_id && <button className="pill" onClick={reset} disabled={busy}>Reset to original</button>}
+            {mine && !isActive && <button className="pill !text-alert" onClick={remove}>Delete</button>}
           </div>
-          <button className="eyebrow !text-alert underline underline-offset-4 mt-4" onClick={deleteAccount}>Delete account</button>
-        </div>
-      </section>
+
+          <SectionLabel>{days.filter((d) => !d.is_rest).length} training days · {days.filter((d) => d.is_rest).length} rest</SectionLabel>
+          <div className="group">
+            {days.map((d) => {
+              const list = exs.filter((e) => e.plan_day_id === d.id);
+              const isNext = isActive && d.position === settings.next_position % Math.max(1, days.length);
+              const isOpen = open === d.id;
+              return (
+                <div key={d.id}>
+                  <button className="row" onClick={() => setOpen(isOpen ? null : d.id)}>
+                    <span className={`num text-lg w-9 h-9 rounded-full grid place-items-center shrink-0 ${isNext ? 'bg-volt text-[#111]' : 'bg-card2'}`}>{pad(d.position + 1)}</span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-semibold truncate">{d.name}</span>
+                      <span className="block text-[13px] text-sub">{isNext ? 'Up next · ' : ''}{d.is_rest ? 'Recovery' : `${list.length} exercises · ${list.reduce((a, e) => a + e.target_reps.length, 0)} sets`}</span>
+                    </span>
+                    <span className={`text-sub transition-transform ${isOpen ? 'rotate-90' : ''}`}>›</span>
+                  </button>
+                  {isOpen && (
+                    <div className="px-4 pb-4 bg-card">
+                      {list.map((e, i) => (
+                        <button key={e.id} onClick={() => setGuide(e)} className="w-full flex items-baseline gap-3 py-2 text-left border-t border-rule first:border-t-0">
+                          <span className="num text-sub w-5">{i + 1}</span>
+                          <span className="flex-1 text-[15px]">{e.label} <span className="text-sub text-xs">ⓘ</span></span>
+                          <span className="num">{e.target_reps.join('·')}</span>
+                        </button>
+                      ))}
+                      {isActive && (
+                        <div className="flex gap-2 mt-3">
+                          {!isNext && <button className="btn-line !h-11 !text-base flex-1" onClick={() => save({ next_position: d.position })}>Set as next</button>}
+                          {!d.is_rest && <button className="btn-ink !h-11 !text-base flex-1" onClick={() => startDay(d)}>Start now</button>}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
       {guide && <ExerciseGuide name={guide.label} cue={guide.cue} onClose={() => setGuide(null)} />}
     </div>
   );

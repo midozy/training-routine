@@ -1,4 +1,4 @@
-// Source of truth for the trainer's plans (Team Zoher "High Volume Pro Split" PDFs).
+// Source of truth for the original plans (from the purchased programme PDFs).
 // target = reps per set (array length = number of sets). unit: 'reps' | 'steps'.
 
 const T_FAST_UP = 'Up fast, 3 s down';
@@ -80,7 +80,7 @@ const ARMS = [
 export const plans = [
   {
     slug: 'split-1',
-    name: 'High Volume Pro Split 1',
+    name: '4-Day Split',
     description: '4 training days + 1 rest, rotating',
     days: [
       { name: 'Chest & Biceps', exercises: CHEST_BI },
@@ -92,7 +92,7 @@ export const plans = [
   },
   {
     slug: 'split-2',
-    name: 'High Volume Pro Split 2',
+    name: '6-Day Split',
     description: '6 training days + 1 rest, rotating',
     days: [
       { name: 'Chest & Biceps', exercises: CHEST_BI },

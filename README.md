@@ -1,6 +1,6 @@
-# Training Routine
+# Heavy
 
-Mobile-first training log for the Team Zoher **High Volume Pro Split 1 & 2**. The codebase produces two things:
+Mobile-first training log: plans, set logging, progress, body tracking and profile. The codebase produces two things:
 
 - **Web app:** static export deployed by Vercel from GitHub `main` → https://training-routine-five.vercel.app
 - **iOS app:** the same build wrapped with Capacitor 8, with native lock-screen rest alerts, haptics and keep-awake.
@@ -33,7 +33,7 @@ In Xcode:
 4. When the first rest timer starts, allow notifications. This is what makes the lock-screen "Rest over — GO" alert work.
 
 ### TestFlight (no cable, auto-updates, needs the paid membership)
-1. In **App Store Connect → Apps → +**, create the app with bundle ID `com.elsamman.trainingroutine`. The name must be unique on the store; a working title is fine for now.
+1. In **App Store Connect → Apps → +**, create the app with bundle ID `com.elsamman.heavy`. The name must be unique on the store; a working title is fine for now.
 2. In Xcode, set the device to **Any iOS Device (arm64)**, then **Product → Archive → Distribute App → App Store Connect → Upload**.
 3. In App Store Connect → **TestFlight**, add yourself as an **internal tester**. Internal builds don't need App Review.
 4. Install the **TestFlight** app on the iPhone and accept the invite.
@@ -50,16 +50,16 @@ Web: push to `main` (Vercel redeploys). iOS: `npm run ios:sync`, bump **Build** 
 | In-app account deletion (guideline 5.1.1(v)) | Done. Plan → Delete account (`delete_my_account()` RPC; all data cascades) |
 | Public privacy policy URL | Done. `/privacy/` (reachable without signing in) |
 | Health disclaimer / terms | Done. `/terms/`, linked from sign-in and Plan |
-| Trainer's plans hidden from other users | Done. `plans.owner_id` = your account; RLS only shows your own or shared (`owner_id is null`) plans |
+| Your plans hidden from other users | Done. `plans.owner_id` = your account; RLS only shows your own or shared (`owner_id is null`) plans |
 | Sign-ups switch | Done. Closed now (allowlist only); one SQL update opens them (below) |
 | Native features, not a bare web wrapper (guideline 4.2) | Done. Lock-screen rest alerts, haptics, keep-awake, native splash/icon |
 | Export compliance | Done. `ITSAppUsesNonExemptEncryption = false` |
 
 ## Still to do before a public App Store release
 
-1. **Content rights.** Get written permission from Team Zoher to publish the plans, or ship with your own programming or a plan builder. Their plans stay private to your account either way.
+1. **Plan content.** The two original plans are private to your account. Before bundling them for other users, confirm your purchase licence allows redistribution; otherwise new users start from the plan builder.
 2. **Exercise photos.** The GIFs come from free-exercise-db (Unlicense), but the photos' original source is unclear. Replace them with photos or illustrations you own or have licensed.
-3. **Plans for new users.** New accounts currently see a "No plan yet" screen. Add shared template plans (`owner_id = null`) or a simple plan builder.
+3. **Plans for new users.** New accounts can create plans with the built-in editor (Plan → + New). Optionally add shared starter templates (`owner_id = null`).
 4. **Open sign-ups:** `update app_settings set value = 'true' where key = 'signups_open';`. Also turn on **email confirmation** in Supabase Auth settings; allowlisted accounts skip it today.
 5. **Supabase Auth:** enable *Leaked password protection*, set the Site URL, and add a password-reset flow.
 6. **Store listing:** app name, subtitle, screenshots (6.9″ iPhone), description, support URL, privacy "nutrition" labels (email + fitness data, not used for tracking), age rating, and a demo account for the reviewer.

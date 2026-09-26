@@ -6,7 +6,7 @@ export default function LegalPage({ title, updated, sections }: { title: string;
   const router = useRouter();
   return (
     <div className="mx-auto max-w-xl px-5 pt-[calc(env(safe-area-inset-top)+16px)] pb-[calc(env(safe-area-inset-bottom)+40px)]">
-      <button onClick={() => (history.length > 1 ? router.back() : router.push('/'))} className="eyebrow text-ink h-10">← Back</button>
+      <button onClick={() => (history.length > 1 ? router.back() : router.push('/'))} className="text-[16px] font-semibold text-ink h-10">‹ Back</button>
       <h1 className="display text-[52px] mt-2">{title}</h1>
       <div className="eyebrow mt-3">Last updated {updated}</div>
       <div className="mt-8 border-t-2 border-ink">

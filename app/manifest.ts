@@ -3,9 +3,9 @@ export const dynamic = 'force-static';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Training Routine',
-    short_name: 'Training',
-    description: 'High Volume Pro Split — log, track, progress',
+    name: 'Heavy',
+    short_name: 'Heavy',
+    description: 'Log every set, track every gain.',
     start_url: '/',
     display: 'standalone',
     background_color: '#f4f1ea',

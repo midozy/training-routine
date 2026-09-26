@@ -14,9 +14,9 @@ const CHEST_BI = [
   ex('Dips', 'Chest', [15, 15, 15, 15], 'Hold 2 s at the bottom · 20 s rest only', { rest: 20 }),
   ex('Svend Press', 'Chest', [15, 12, 10, 10]),
   ex('Barbell Curl', 'Biceps', [10, 10, 10, 10, 10, 10]),
-  ex('Machine Curl', 'Biceps', [20, 20, 15, 15], T_CURL),
+  ex('Machine Preacher Curl', 'Biceps', [20, 20, 15, 15], T_CURL),
   ex('Hammer Curl', 'Biceps', [15, 12, 10, 10], 'Lower slowly on every rep'),
-  ex('Dumbbell Curl', 'Biceps', [20, 20, 15, 15], T_CURL),
+  ex('Dumbbell Concentration Curl', 'Biceps', [20, 20, 15, 15], T_CURL),
 ];
 
 const BACK_TRI = [
@@ -28,7 +28,7 @@ const BACK_TRI = [
   ex('Lying Triceps Extension', 'Triceps', [12, 12, 12, 12]),
   ex('Triceps Kickback', 'Triceps', [20, 20, 15, 15]),
   ex('Rope Pushdown', 'Triceps', [15, 15, 15, 15, 15]),
-  ex('Dumbbell Triceps Extension', 'Triceps', [15, 15, 15, 15, 15]),
+  ex('Overhead Dumbbell Extension', 'Triceps', [15, 15, 15, 15, 15]),
 ];
 
 const LEGS = [
@@ -47,9 +47,9 @@ const LEGS = [
 const SHOULDERS_TRAPS = [
   ex('Standing Military Press', 'Shoulders', [12, 12, 12, 12], T_FAST_UP),
   ex('Seated Dumbbell Press', 'Shoulders', [12, 12, 12, 12], T_FAST_UP),
-  ex('Rear Delt Flyes', 'Rear Delts', [15, 15, 15, 15, 15]),
+  ex('Bent-Over Rear Delt Flyes', 'Rear Delts', [15, 15, 15, 15, 15]),
   ex('Lateral Raises', 'Shoulders', [20, 20, 15, 15, 10, 10], 'PDF also notes "4 sets" — confirm with trainer'),
-  ex('Rear Delt Flyes (2nd round)', 'Rear Delts', [15, 15, 15], 'Listed twice in the plan — confirm variation with trainer'),
+  ex('Reverse Pec Deck', 'Rear Delts', [15, 15, 15]),
   ex('Barbell Shrugs', 'Traps', [15, 15, 15, 15, 15], 'Hold 2 s at the top every rep'),
   ex('Dumbbell Upright Row', 'Shoulders', [15, 15, 15]),
   ex('Dumbbell Shrugs', 'Traps', [15, 15, 15, 15, 15], 'Hold 2 s at the top every rep'),
@@ -69,12 +69,12 @@ const CHEST_BACK = [
 const ARMS = [
   ex('Barbell Curl', 'Biceps', [10, 10, 10, 10, 10, 10]),
   ex('Rope Pushdown', 'Triceps', [15, 15, 15, 15, 15]),
-  ex('Machine Curl', 'Biceps', [20, 20, 15, 15], T_CURL),
+  ex('Machine Preacher Curl', 'Biceps', [20, 20, 15, 15], T_CURL),
   ex('Lying Triceps Extension', 'Triceps', [12, 12, 12, 12]),
   ex('Hammer Curl', 'Biceps', [15, 12, 10, 10], 'Lower slowly on every rep'),
   ex('Triceps Kickback', 'Triceps', [20, 20, 15, 15]),
-  ex('Dumbbell Curl', 'Biceps', [20, 20, 15, 15], T_CURL),
-  ex('Dumbbell Triceps Extension', 'Triceps', [15, 15, 15, 15, 15]),
+  ex('Dumbbell Concentration Curl', 'Biceps', [20, 20, 15, 15], T_CURL),
+  ex('Overhead Dumbbell Extension', 'Triceps', [15, 15, 15, 15, 15]),
 ];
 
 export const plans = [

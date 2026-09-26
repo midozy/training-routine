@@ -1,0 +1,504 @@
+{
+ "Barbell Bench Press": {
+  "gif": "/exercises/barbell-bench-press.gif",
+  "aka": null,
+  "setup": "Lie flat with your eyes under the bar. Pull your shoulder blades back and down, keep a slight arch, and plant your feet. Grip just wider than shoulder width.",
+  "perform": "Unrack and hold the bar over your shoulders. Lower it under control to your mid/lower chest with elbows at about 45–70° from your torso. Press back up and slightly back over your shoulders.",
+  "avoid": "Bouncing the bar off your chest, flaring your elbows to 90°, lifting your hips off the bench.",
+  "primary": [
+   "Chest"
+  ],
+  "secondary": [
+   "Shoulders",
+   "Triceps"
+  ],
+  "equipment": "Barbell"
+ },
+ "Incline Dumbbell Press": {
+  "gif": "/exercises/incline-dumbbell-press.gif",
+  "aka": null,
+  "setup": "Set the bench to 30–45°. Kick the dumbbells up off your knees. Keep your shoulder blades pinched and your chest up.",
+  "perform": "Lower the dumbbells to the sides of your upper chest, forearms vertical, with a deep stretch. Press up and slightly together, stopping just short of the dumbbells touching.",
+  "avoid": "Setting the bench too steep (the load shifts to your shoulders), losing shoulder-blade position at the top.",
+  "primary": [
+   "Chest"
+  ],
+  "secondary": [
+   "Shoulders",
+   "Triceps"
+  ],
+  "equipment": "Dumbbell"
+ },
+ "Machine Flyes": {
+  "gif": "/exercises/machine-flyes.gif",
+  "aka": "Pec Deck",
+  "setup": "Set the seat so the handles line up with mid-chest. Keep a slight, fixed bend in your elbows. Sit tall with your shoulders back.",
+  "perform": "Bring the handles together in a wide arc and squeeze your chest hard for a moment when they meet. Return slowly until you feel a stretch across your chest.",
+  "avoid": "Pressing with your arms (elbows bending and straightening), shoulders rolling forward, letting the weight stack slam.",
+  "primary": [
+   "Chest"
+  ],
+  "secondary": [],
+  "equipment": "Machine"
+ },
+ "Dips": {
+  "gif": "/exercises/dips.gif",
+  "aka": "Chest version",
+  "setup": "Grip the parallel bars and lock out at the top. Lean your torso forward about 30° and bend your knees slightly behind you.",
+  "perform": "Lower until your upper arms are about parallel to the floor and you feel a chest stretch. Hold 2 s at the bottom (trainer's cue). Press back up, keeping the forward lean.",
+  "avoid": "Staying bolt upright (it turns into a triceps dip), dropping too deep with pain at the front of the shoulder, swinging your legs.",
+  "primary": [
+   "Chest"
+  ],
+  "secondary": [
+   "Shoulders",
+   "Triceps"
+  ],
+  "equipment": "Other"
+ },
+ "Svend Press": {
+  "gif": "/exercises/svend-press.gif",
+  "aka": null,
+  "setup": "Stand tall holding one or two plates pressed together between your palms at chest height.",
+  "perform": "Keep squeezing the plates together as hard as you can while you press them straight out until your arms are extended. Bring them back to your chest under control, still squeezing.",
+  "avoid": "Easing off the squeeze, which is where the chest work comes from. Also avoid shrugging or leaning back.",
+  "primary": [
+   "Chest"
+  ],
+  "secondary": [
+   "Forearms",
+   "Shoulders",
+   "Triceps"
+  ],
+  "equipment": "Other"
+ },
+ "Barbell Curl": {
+  "gif": "/exercises/barbell-curl.gif",
+  "aka": null,
+  "setup": "Stand tall with a shoulder-width underhand grip on a straight or EZ bar. Pin your elbows to your sides and brace your core.",
+  "perform": "Curl the bar up to shoulder height by bending only at the elbow. Squeeze at the top. Lower under control until your arms are fully straight.",
+  "avoid": "Swinging your hips or leaning back, letting your elbows drift forward, cutting the bottom range short.",
+  "primary": [
+   "Biceps"
+  ],
+  "secondary": [
+   "Forearms"
+  ],
+  "equipment": "Barbell"
+ },
+ "Machine Preacher Curl": {
+  "gif": "/exercises/machine-preacher-curl.gif",
+  "aka": null,
+  "setup": "Set the seat so the backs of your upper arms lie flat on the pad and your armpits sit snugly at its top edge. Grip the handles underhand.",
+  "perform": "Curl up fast and hold 1 s at the top with a hard squeeze. Lower slowly to almost full extension (trainer's cue).",
+  "avoid": "Lifting your elbows off the pad, snapping into full lockout under load at the bottom.",
+  "primary": [
+   "Biceps"
+  ],
+  "secondary": [],
+  "equipment": "Machine"
+ },
+ "Hammer Curl": {
+  "gif": "/exercises/hammer-curl.gif",
+  "aka": null,
+  "setup": "Stand with a dumbbell in each hand, palms facing each other (neutral grip), and elbows at your sides.",
+  "perform": "Curl the dumbbells up keeping the neutral grip, thumbs leading, to shoulder height. Lower slowly on every rep (trainer's cue). You can alternate arms or lift both together.",
+  "avoid": "Rotating your wrists into a normal curl, swinging, letting your elbows travel forward.",
+  "primary": [
+   "Biceps"
+  ],
+  "secondary": [],
+  "equipment": "Dumbbell"
+ },
+ "Dumbbell Concentration Curl": {
+  "gif": "/exercises/concentration-curl.gif",
+  "aka": null,
+  "setup": "Sit on the end of a bench with your feet wide. Brace the back of your working upper arm against the inside of your thigh, arm hanging straight.",
+  "perform": "Curl the dumbbell toward your shoulder, turning your pinky up slightly at the top. Hold 1 s. Lower slowly to full extension (trainer's cue). Finish all reps, then switch arms.",
+  "avoid": "Using your shoulder or torso to lift, letting your arm come off your thigh.",
+  "primary": [
+   "Biceps"
+  ],
+  "secondary": [
+   "Forearms"
+  ],
+  "equipment": "Dumbbell"
+ },
+ "Lat Pulldown": {
+  "gif": "/exercises/lat-pulldown.gif",
+  "aka": null,
+  "setup": "Lock your thighs under the pad. Take an overhand grip a little wider than shoulder width. Lean back slightly with your chest up.",
+  "perform": "Start by pulling your shoulder blades down, then drive your elbows down toward your hips and bring the bar to your upper chest. Let it rise slowly over 3 s (trainer's cue) to a full stretch overhead.",
+  "avoid": "Pulling behind your neck, leaning far back and turning it into a row, using momentum from your torso.",
+  "primary": [
+   "Lats"
+  ],
+  "secondary": [
+   "Biceps",
+   "Middle Back",
+   "Shoulders"
+  ],
+  "equipment": "Cable"
+ },
+ "Barbell Bent-Over Row": {
+  "gif": "/exercises/bent-over-row.gif",
+  "aka": null,
+  "setup": "Overhand grip, just wider than shoulders. Hinge at the hips until your torso is 30–45° from horizontal, knees soft, back flat, core braced.",
+  "perform": "Row the bar to your lower ribs or belly, driving your elbows back and squeezing your shoulder blades together. Lower until your arms are straight while holding the hinge.",
+  "avoid": "Standing up more with each rep, rounding your lower back, jerking the weight with your hips.",
+  "primary": [
+   "Middle Back"
+  ],
+  "secondary": [
+   "Biceps",
+   "Lats",
+   "Shoulders"
+  ],
+  "equipment": "Barbell"
+ },
+ "T-Bar Row": {
+  "gif": "/exercises/t-bar-row.gif",
+  "aka": null,
+  "setup": "Straddle the bar (landmine or T-bar station) with a close neutral grip on the handle. Hinge forward with a flat back and soft knees.",
+  "perform": "Pull the handle to your chest/upper abs with your elbows close to your body. Squeeze your back hard at the top. Lower until your arms are fully straight and your lats stretch.",
+  "avoid": "Rounding your back, heaving with your legs and hips, shortening the stretch at the bottom.",
+  "primary": [
+   "Middle Back"
+  ],
+  "secondary": [
+   "Biceps",
+   "Lats"
+  ],
+  "equipment": "Barbell"
+ },
+ "One-Arm Dumbbell Row": {
+  "gif": "/exercises/one-arm-dumbbell-row.gif",
+  "aka": null,
+  "setup": "Put one knee and the same-side hand on a flat bench, back flat and parallel to the floor. Hold the dumbbell in the other hand, arm hanging straight.",
+  "perform": "Row the dumbbell toward your hip, keeping your elbow close to your body. Squeeze at the top. Lower to a full stretch. Add weight every set (trainer's cue).",
+  "avoid": "Twisting your torso open to lift the weight, shrugging up toward your ear, cutting the stretch short.",
+  "primary": [
+   "Middle Back"
+  ],
+  "secondary": [
+   "Biceps",
+   "Lats",
+   "Shoulders"
+  ],
+  "equipment": "Dumbbell"
+ },
+ "Seated Cable Row": {
+  "gif": "/exercises/seated-cable-row.gif",
+  "aka": null,
+  "setup": "Sit with your feet on the platform and knees slightly bent. Hold a close-grip (V) handle and sit tall with your chest up.",
+  "perform": "Pull the handle to your lower ribs, driving your elbows back and squeezing your shoulder blades together. Return by reaching forward until your lats stretch, keeping your back neutral.",
+  "avoid": "Rocking back and forth with your torso to move the weight, rounding your lower back, shrugging.",
+  "primary": [
+   "Middle Back"
+  ],
+  "secondary": [
+   "Biceps",
+   "Lats",
+   "Shoulders"
+  ],
+  "equipment": "Cable"
+ },
+ "Lying Triceps Extension": {
+  "gif": "/exercises/skull-crusher.gif",
+  "aka": "Skull Crusher",
+  "setup": "Lie on a flat bench holding an EZ bar with a narrow overhand grip, arms straight over your chest, then angled slightly back toward your head.",
+  "perform": "Bend only at the elbows and lower the bar to your forehead or just behind your head. Extend back to the start and squeeze your triceps.",
+  "avoid": "Elbows flaring out wide, upper arms swinging (which turns it into a pullover), dropping the bar fast toward your head.",
+  "primary": [
+   "Triceps"
+  ],
+  "secondary": [
+   "Forearms"
+  ],
+  "equipment": "E-Z Curl Bar"
+ },
+ "Triceps Kickback": {
+  "gif": "/exercises/triceps-kickback.gif",
+  "aka": null,
+  "setup": "Hinge forward with a flat back, or support yourself on a bench. Pin your upper arm parallel to the floor, close to your torso, elbow bent at 90°.",
+  "perform": "Extend your forearm back until your arm is fully straight and squeeze hard for a moment. Return slowly to 90°. Only your forearm moves.",
+  "avoid": "Your upper arm dropping or swinging, using momentum, stopping short of a full lockout.",
+  "primary": [
+   "Triceps"
+  ],
+  "secondary": [],
+  "equipment": "Dumbbell"
+ },
+ "Rope Pushdown": {
+  "gif": "/exercises/rope-pushdown.gif",
+  "aka": null,
+  "setup": "Attach a rope to a high cable. Stand tall with a slight forward lean and your elbows tucked at your sides.",
+  "perform": "Push the rope down until your arms are straight, then pull the ends apart at the bottom and squeeze. Let it return under control until your forearms are just above parallel.",
+  "avoid": "Your elbows drifting forward or flaring, leaning your bodyweight onto the rope, shrugging your shoulders.",
+  "primary": [
+   "Triceps"
+  ],
+  "secondary": [],
+  "equipment": "Cable"
+ },
+ "Overhead Dumbbell Extension": {
+  "gif": "/exercises/overhead-dumbbell-extension.gif",
+  "aka": null,
+  "setup": "Sit on a bench with back support. Hold one dumbbell with both hands under the top plate, arms straight overhead.",
+  "perform": "Keep your upper arms close to your head and lower the dumbbell behind your head to a deep stretch. Extend back up to full lockout.",
+  "avoid": "Elbows flaring wide, arching your lower back, cutting the stretch short (it's the main benefit of this exercise).",
+  "primary": [
+   "Triceps"
+  ],
+  "secondary": [],
+  "equipment": "Dumbbell"
+ },
+ "Barbell Squat": {
+  "gif": "/exercises/barbell-squat.gif",
+  "aka": null,
+  "setup": "Rest the bar on your upper traps and pull it tight into your back. Stand shoulder-width or slightly wider, toes turned out a little. Brace your core hard.",
+  "perform": "Sit down and back over 3 s (trainer's cue), knees tracking over your toes, chest up, to at least parallel. Drive up fast through your whole foot.",
+  "avoid": "Knees caving in, heels lifting, your lower back rounding at the bottom, your chest dropping forward.",
+  "primary": [
+   "Quadriceps"
+  ],
+  "secondary": [
+   "Calves",
+   "Glutes",
+   "Hamstrings",
+   "Lower Back"
+  ],
+  "equipment": "Barbell"
+ },
+ "Leg Press": {
+  "gif": "/exercises/leg-press.gif",
+  "aka": null,
+  "setup": "Sit with your back and hips flat against the pad. Put your feet shoulder-width, mid-platform. Release the safeties.",
+  "perform": "Lower over 3 s until your knees reach about 90° or deeper, as long as your hips stay down. Press up over 2 s (trainer's cue) to just short of lockout.",
+  "avoid": "Your hips curling off the pad at the bottom, locking your knees hard at the top, pushing through your toes.",
+  "primary": [
+   "Quadriceps"
+  ],
+  "secondary": [
+   "Calves",
+   "Glutes",
+   "Hamstrings"
+  ],
+  "equipment": "Machine"
+ },
+ "Goblet Squat": {
+  "gif": "/exercises/goblet-squat.gif",
+  "aka": null,
+  "setup": "Hold one dumbbell vertically against your chest, elbows pointing down. Feet slightly wider than shoulders, toes out.",
+  "perform": "Squat down between your knees, keeping your torso upright, until your elbows brush the inside of your knees. Stand up by driving through your mid-foot.",
+  "avoid": "Leaning forward, heels coming up, knees collapsing inward.",
+  "primary": [
+   "Quadriceps"
+  ],
+  "secondary": [
+   "Calves",
+   "Glutes",
+   "Hamstrings",
+   "Shoulders"
+  ],
+  "equipment": "Kettlebells"
+ },
+ "Stiff-Leg Deadlift": {
+  "gif": "/exercises/stiff-leg-deadlift.gif",
+  "aka": null,
+  "setup": "Stand hip-width holding a barbell at your thighs, overhand grip. Soften your knees slightly and keep them at that angle throughout.",
+  "perform": "Push your hips back and lower the bar along your legs with a flat back until you feel a strong hamstring stretch, around mid-shin. Come up fast and squeeze your glutes and hamstrings at the top. The bar never touches the floor (trainer's cue).",
+  "avoid": "Rounding your back, bending your knees into a squat, letting the bar drift away from your legs.",
+  "primary": [
+   "Hamstrings"
+  ],
+  "secondary": [
+   "Glutes",
+   "Lower Back"
+  ],
+  "equipment": "Barbell"
+ },
+ "Leg Curl": {
+  "gif": "/exercises/leg-curl.gif",
+  "aka": null,
+  "setup": "Lie face down with the pad just above your heels and your knees just off the bench edge. Hold the handles and keep your hips pressed down.",
+  "perform": "Curl your heels toward your glutes with force and squeeze. Lower under full control (trainer's cue) until your legs are almost straight.",
+  "avoid": "Your hips lifting off the pad, dropping the weight, cutting the range short.",
+  "primary": [
+   "Hamstrings"
+  ],
+  "secondary": [],
+  "equipment": "Machine"
+ },
+ "Leg Extension": {
+  "gif": "/exercises/leg-extension.gif",
+  "aka": null,
+  "setup": "Sit with your back against the pad, knees lined up with the machine's pivot, and the ankle pad just above your feet.",
+  "perform": "Extend your legs until they're straight. Hold and squeeze your quads for 2 s at the top (trainer's cue). Lower slowly.",
+  "avoid": "Kicking the weight up with momentum, your hips lifting off the seat, dropping the stack.",
+  "primary": [
+   "Quadriceps"
+  ],
+  "secondary": [],
+  "equipment": "Machine"
+ },
+ "Hack Squat": {
+  "gif": "/exercises/hack-squat.gif",
+  "aka": null,
+  "setup": "Put your back and shoulders against the pads. Feet shoulder-width, mid-platform. Release the safeties.",
+  "perform": "Lower slowly until your thighs are parallel to the platform or deeper. Drive up fast and squeeze your quads at the top (trainer's cue).",
+  "avoid": "Heels lifting, knees caving in, locking out hard at the top.",
+  "primary": [
+   "Quadriceps"
+  ],
+  "secondary": [
+   "Calves",
+   "Glutes",
+   "Hamstrings"
+  ],
+  "equipment": "Machine"
+ },
+ "Walking Lunges": {
+  "gif": "/exercises/walking-lunges.gif",
+  "aka": null,
+  "setup": "Stand tall holding dumbbells at your sides, or with bodyweight only. Keep your core braced.",
+  "perform": "Take a long step forward and lower until your back knee almost touches the floor, front shin close to vertical. Push through your front heel and step straight into the next lunge. Count 50 steps per set (trainer's cue).",
+  "avoid": "Your front knee caving in, short choppy steps, your torso slumping forward.",
+  "primary": [
+   "Quadriceps"
+  ],
+  "secondary": [
+   "Calves",
+   "Glutes",
+   "Hamstrings"
+  ],
+  "equipment": "Body Only"
+ },
+ "Seated Calf Raise": {
+  "gif": "/exercises/seated-calf-raise.gif",
+  "aka": null,
+  "setup": "Sit with the balls of your feet on the platform edge and the pad snug on your lower thighs. Release the lever.",
+  "perform": "Lower your heels slowly to a deep stretch. Drive up fast onto your toes and squeeze your calves at the top (trainer's cue).",
+  "avoid": "Bouncing out of the bottom, using a short range, rolling onto your outer toes.",
+  "primary": [
+   "Calves"
+  ],
+  "secondary": [],
+  "equipment": "Machine"
+ },
+ "Standing Calf Raise": {
+  "gif": "/exercises/standing-calf-raise.gif",
+  "aka": null,
+  "setup": "Stand on the edge of the platform on the balls of your feet with your shoulders under the pads. Knees straight but not locked.",
+  "perform": "Lower your heels slowly to a full stretch. Drive up fast as high as you can and squeeze at the top (trainer's cue).",
+  "avoid": "Bending your knees to help the lift, bouncing, a quick half range.",
+  "primary": [
+   "Calves"
+  ],
+  "secondary": [],
+  "equipment": "Machine"
+ },
+ "Standing Military Press": {
+  "gif": "/exercises/military-press.gif",
+  "aka": null,
+  "setup": "Rack the bar at upper-chest height. Grip just outside shoulder width, feet hip-width. Squeeze your glutes and brace your core.",
+  "perform": "Press the bar straight up, moving your head back slightly to clear it, then bring your head through once the bar passes your forehead. Lock out over your mid-foot. Lower over 3 s (trainer's cue) to your upper chest.",
+  "avoid": "Leaning back into a standing incline press, using your legs to push it up, flaring your elbows far out in front of the bar.",
+  "primary": [
+   "Shoulders"
+  ],
+  "secondary": [
+   "Triceps"
+  ],
+  "equipment": "Barbell"
+ },
+ "Seated Dumbbell Press": {
+  "gif": "/exercises/seated-dumbbell-press.gif",
+  "aka": null,
+  "setup": "Set the bench upright or at about 80°. Start with the dumbbells at shoulder height, palms forward, elbows slightly in front of your body.",
+  "perform": "Press up and slightly in until your arms are almost locked. Lower over 3 s (trainer's cue) until the dumbbells reach ear or shoulder level.",
+  "avoid": "Arching off the backrest, clanging the dumbbells together at the top, shortening the range.",
+  "primary": [
+   "Shoulders"
+  ],
+  "secondary": [
+   "Triceps"
+  ],
+  "equipment": "Dumbbell"
+ },
+ "Bent-Over Rear Delt Flyes": {
+  "gif": "/exercises/rear-delt-flyes-db.gif",
+  "aka": null,
+  "setup": "Sit on the end of a bench or stand hinged forward with your chest near parallel to the floor. Hold light dumbbells under your chest, elbows slightly bent.",
+  "perform": "Raise your arms out to the sides, leading with your elbows, until they're in line with your shoulders. Pause, then lower slowly.",
+  "avoid": "Squeezing your shoulder blades together hard (it shifts the work to your mid-back), swinging your torso up, going too heavy.",
+  "primary": [
+   "Shoulders"
+  ],
+  "secondary": [],
+  "equipment": "Dumbbell"
+ },
+ "Reverse Pec Deck": {
+  "gif": "/exercises/reverse-pec-deck.gif",
+  "aka": null,
+  "setup": "Sit facing the pec-deck pad with the handles set to the rear-delt position at shoulder height. Take a neutral or overhand grip, arms nearly straight.",
+  "perform": "Sweep your arms out and back in a wide arc until they line up with your body. Pause, then return slowly without letting the stack rest.",
+  "avoid": "Shrugging, pulling with bent arms like a row, snapping back fast.",
+  "primary": [
+   "Shoulders"
+  ],
+  "secondary": [],
+  "equipment": "Machine"
+ },
+ "Lateral Raises": {
+  "gif": "/exercises/lateral-raises.gif",
+  "aka": null,
+  "setup": "Stand with dumbbells at your sides, a slight forward lean, and a slight bend in your elbows.",
+  "perform": "Raise your arms out to the sides, leading with your elbows, to shoulder height, with your pinky side level or slightly higher. Lower slowly. For the 20-rep sets, go lighter and keep constant tension.",
+  "avoid": "Shrugging your traps up, swinging, lifting above shoulder height.",
+  "primary": [
+   "Shoulders"
+  ],
+  "secondary": [],
+  "equipment": "Dumbbell"
+ },
+ "Barbell Shrugs": {
+  "gif": "/exercises/barbell-shrugs.gif",
+  "aka": null,
+  "setup": "Stand tall holding a barbell at your thighs, overhand grip, shoulder width, arms straight.",
+  "perform": "Shrug your shoulders straight up toward your ears. Hold 2 s at the top every rep (trainer's cue). Lower to a full stretch.",
+  "avoid": "Rolling your shoulders in circles, bending your elbows, bouncing without the hold.",
+  "primary": [
+   "Traps"
+  ],
+  "secondary": [],
+  "equipment": "Barbell"
+ },
+ "Dumbbell Upright Row": {
+  "gif": "/exercises/dumbbell-upright-row.gif",
+  "aka": null,
+  "setup": "Stand holding dumbbells in front of your thighs, palms facing you.",
+  "perform": "Raise the dumbbells along your body, leading with your elbows, until your elbows reach about shoulder height. Lower under control.",
+  "avoid": "Pulling above shoulder height, which can pinch the shoulder, and swinging.",
+  "primary": [
+   "Traps"
+  ],
+  "secondary": [
+   "Biceps",
+   "Shoulders"
+  ],
+  "equipment": "Dumbbell"
+ },
+ "Dumbbell Shrugs": {
+  "gif": "/exercises/dumbbell-shrugs.gif",
+  "aka": null,
+  "setup": "Stand tall with a dumbbell at each side, palms facing in, arms straight.",
+  "perform": "Shrug straight up toward your ears. Hold 2 s at the top every rep (trainer's cue). Lower to a full stretch.",
+  "avoid": "Rolling your shoulders, bending your elbows, dropping your head forward.",
+  "primary": [
+   "Traps"
+  ],
+  "secondary": [],
+  "equipment": "Dumbbell"
+ }
+}

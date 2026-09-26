@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ExerciseGuide from '@/components/ExerciseGuide';
 import { supabase, getSettings, epley, fmtDate, fmtKg, type PlanExercise, type Session, type SetLog } from '@/lib/supabase';
 
 type Row = { weight: string; reps: string; logged: boolean; touched: boolean };
@@ -43,6 +44,7 @@ export default function Workout() {
   const [rest, setRest] = useState<{ endAt: number; total: number; next: string } | null>(null);
   const [sheet, setSheet] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -242,7 +244,10 @@ export default function Workout() {
           <span className="eyebrow">{pad(cur + 1)} / {pad(exs.length)} · {muscle[x.exercise_id] ?? ''}</span>
           {pr && <span className="bg-volt px-1.5 py-0.5 font-display font-bold text-sm tracking-wide">NEW PR</span>}
         </div>
-        <h1 className="display text-[44px] mt-2">{x.label}</h1>
+        <button onClick={() => setGuideOpen(true)} className="block text-left mt-2 group" aria-label={`How to do ${x.label}`}>
+          <h1 className="display text-[44px]">{x.label}</h1>
+          <span className="inline-flex items-center gap-1.5 mt-2 bg-ink text-paper px-2 py-1 font-display font-bold uppercase tracking-wide text-sm">▶ How to do it</span>
+        </button>
         {x.cue && <p className="mt-2 text-[15px] leading-snug">▲ {x.cue}</p>}
         <p className="mt-1 text-sm text-sub">{pv?.length ? `Last time: ${pv.map((s) => `${fmtKg(s.weight)}×${s.reps}`).join('  ')}` : 'First time logging this one'}</p>
       </div>
@@ -281,6 +286,8 @@ export default function Workout() {
         )}
         <div className="text-center eyebrow mt-3">{done}/{r.length} sets on this exercise</div>
       </div>
+
+      {guideOpen && <ExerciseGuide name={x.label} cue={x.cue} onClose={() => setGuideOpen(false)} />}
 
       {/* rest overlay */}
       {rest && (

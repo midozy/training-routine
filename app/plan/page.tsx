@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { PageHead } from '@/components/Shell';
+import ExerciseGuide from '@/components/ExerciseGuide';
 import { supabase, getSettings, type Plan, type PlanDay, type PlanExercise, type Settings } from '@/lib/supabase';
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -14,6 +15,7 @@ export default function PlanPage() {
   const [days, setDays] = useState<PlanDay[]>([]);
   const [exs, setExs] = useState<PlanExercise[]>([]);
   const [open, setOpen] = useState<number | null>(null);
+  const [guide, setGuide] = useState<PlanExercise | null>(null);
 
   async function loadPlan(planId: number) {
     const { data: d } = await supabase.from('plan_days').select('*').eq('plan_id', planId).order('position');
@@ -85,14 +87,14 @@ export default function PlanPage() {
               {isOpen && (
                 <div className="pb-5 pl-14">
                   {list.map((e, i) => (
-                    <div key={e.id} className="py-2 border-t border-rule first:border-t-0">
+                    <button key={e.id} onClick={() => setGuide(e)} className="block w-full text-left py-2 border-t border-rule first:border-t-0">
                       <div className="flex gap-3 items-baseline">
                         <span className="num text-sub w-5">{i + 1}</span>
-                        <span className="flex-1 text-[15px]">{e.label}</span>
+                        <span className="flex-1 text-[15px]">{e.label} <span className="text-sub text-xs">ⓘ</span></span>
                         <span className="num">{e.target_reps.join('·')}</span>
                       </div>
                       {e.cue && <div className="ml-8 text-xs text-sub mt-0.5">▲ {e.cue}</div>}
-                    </div>
+                    </button>
                   ))}
                   <div className="flex gap-2 mt-3">
                     {!isNext && <button className="btn-line h-11 text-base flex-1" onClick={() => save({ next_position: d.position })}>Set as next</button>}
@@ -117,6 +119,7 @@ export default function PlanPage() {
       </section>
 
       <button className="eyebrow text-ink underline underline-offset-4 mt-12" onClick={() => supabase.auth.signOut()}>Sign out</button>
+      {guide && <ExerciseGuide name={guide.label} cue={guide.cue} onClose={() => setGuide(null)} />}
     </div>
   );
 }

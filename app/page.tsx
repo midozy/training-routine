@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import ExerciseGuide from '@/components/ExerciseGuide';
 import { supabase, getSettings, fmtDate, fmtKg, type Plan, type PlanDay, type PlanExercise, type Session, type Settings } from '@/lib/supabase';
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -17,6 +18,7 @@ export default function Today() {
   const [recent, setRecent] = useState<Session[]>([]);
   const [bw, setBw] = useState<{ weight_kg: number; logged_on: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [guide, setGuide] = useState<PlanExercise | null>(null);
 
   async function loadDay(d: PlanDay | undefined) {
     if (!d || d.is_rest) return setExercises([]);
@@ -99,10 +101,12 @@ export default function Today() {
         <>
           <ol className="mt-8 border-t-2 border-ink">
             {exercises.map((e, i) => (
-              <li key={e.id} className="flex items-baseline gap-4 py-3 border-b border-rule">
-                <span className="num text-sub text-lg w-6">{pad(i + 1)}</span>
-                <span className="flex-1 font-medium">{e.label}</span>
-                <span className="num text-lg">{e.target_reps.length}×{[...new Set(e.target_reps)].join('/')}</span>
+              <li key={e.id} className="border-b border-rule">
+                <button onClick={() => setGuide(e)} className="w-full flex items-baseline gap-4 py-3 text-left">
+                  <span className="num text-sub text-lg w-6">{pad(i + 1)}</span>
+                  <span className="flex-1 font-medium">{e.label} <span className="text-sub text-xs ml-1">ⓘ</span></span>
+                  <span className="num text-lg">{e.target_reps.length}×{[...new Set(e.target_reps)].join('/')}</span>
+                </button>
               </li>
             ))}
           </ol>
@@ -133,6 +137,7 @@ export default function Today() {
           </div>
         </section>
       )}
+      {guide && <ExerciseGuide name={guide.label} cue={guide.cue} onClose={() => setGuide(null)} />}
     </div>
   );
 }

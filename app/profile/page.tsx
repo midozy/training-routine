@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { PageHead, SectionLabel } from '@/components/Shell';
 import { usePrefs } from '@/lib/prefs';
-import { notifyStatus, requestNotify, isNative } from '@/lib/native';
+import { notifyStatus, requestNotify, isNative, restAlertsEnabled, setRestAlertsEnabled } from '@/lib/native';
 import { connectHealth, disconnectHealth, getHealthPrefs, healthAvailable, setWriteWorkouts, syncHealth, type HealthPrefs, type SyncResult } from '@/lib/health';
 import { supabase, fetchAll, epley, type Profile } from '@/lib/supabase';
 
@@ -32,6 +32,7 @@ export default function ProfilePage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [notif, setNotif] = useState<'granted' | 'denied' | 'prompt' | 'web'>('web');
   const [uploading, setUploading] = useState(false);
+  const [alertsOn, setAlertsOn] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -44,6 +45,7 @@ export default function ProfilePage() {
         setAvatar(data?.signedUrl ?? null);
       }
       setNotif(await notifyStatus());
+      setAlertsOn(restAlertsEnabled());
       loadStats();
     })();
   }, []);
@@ -216,8 +218,8 @@ export default function ProfilePage() {
         <div className="row">
           <span className="flex-1">Rest alerts on lock screen</span>
           {notif === 'web' && <span className="text-[13px] text-sub">iPhone app only</span>}
-          {notif === 'granted' && <span className="text-[14px] font-semibold text-ink">On</span>}
-          {notif === 'prompt' && <button className="pill !bg-volt !text-[#111]" onClick={async () => { await requestNotify(); setNotif(await notifyStatus()); }}>Turn on</button>}
+          {notif === 'granted' && <Segmented value={alertsOn ? 'on' : 'off'} options={[['on', 'On'], ['off', 'Off']]} onChange={async (v) => { await setRestAlertsEnabled(v === 'on'); setAlertsOn(v === 'on'); }} />}
+          {notif === 'prompt' && <button className="pill !bg-volt !text-[#111]" onClick={async () => { await requestNotify(); await setRestAlertsEnabled(true); setAlertsOn(true); setNotif(await notifyStatus()); }}>Turn on</button>}
           {notif === 'denied' && <span className="text-[13px] text-sub text-right">Off — enable in iPhone Settings › Heavy</span>}
         </div>
       </div>

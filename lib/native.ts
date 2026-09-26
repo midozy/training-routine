@@ -46,9 +46,21 @@ async function ensureNotifyPermission() {
   return (await LocalNotifications.requestPermissions()).display === 'granted';
 }
 
+/* iOS never lets an app revoke its own notification permission, so the on/off switch
+   is Heavy's own per-device preference, checked before every alert is scheduled. */
+const ALERTS_KEY = 'heavy.restAlerts';
+export function restAlertsEnabled(): boolean {
+  try { return localStorage.getItem(ALERTS_KEY) !== 'off'; } catch { return true; }
+}
+export async function setRestAlertsEnabled(on: boolean) {
+  try { localStorage.setItem(ALERTS_KEY, on ? 'on' : 'off'); } catch {}
+  if (!on) await cancelRestAlert();
+}
+
 /** Lock-screen alert when rest ends (fires even if the phone is locked or the app is in the background). */
 export async function scheduleRestAlert(endAt: number, nextUp: string) {
   if (!isNative()) return;
+  if (!restAlertsEnabled()) return cancelRestAlert();
   try {
     await cancelRestAlert();
     if (!(await ensureNotifyPermission())) return;

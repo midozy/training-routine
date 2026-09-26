@@ -216,7 +216,7 @@ export default function ProfilePage() {
         <div className="row"><span className="flex-1">Default rest</span>
           <Segmented value={String(settings.default_rest_seconds)} options={[['60', '60s'], ['90', '90s'], ['120', '2m'], ['180', '3m']]} onChange={(v) => save({ default_rest_seconds: Number(v) })} /></div>
         <div className="row">
-          <span className="flex-1">Rest alerts on lock screen</span>
+          <span className="flex-1">Rest timer on lock screen<span className="block text-[13px] text-sub">Live countdown and an alert when rest ends</span></span>
           {notif === 'web' && <span className="text-[13px] text-sub">iPhone app only</span>}
           {notif === 'granted' && <Segmented value={alertsOn ? 'on' : 'off'} options={[['on', 'On'], ['off', 'Off']]} onChange={async (v) => { await setRestAlertsEnabled(v === 'on'); setAlertsOn(v === 'on'); }} />}
           {notif === 'prompt' && <button className="pill !bg-volt !text-[#111]" onClick={async () => { await requestNotify(); await setRestAlertsEnabled(true); setAlertsOn(true); setNotif(await notifyStatus()); }}>Turn on</button>}

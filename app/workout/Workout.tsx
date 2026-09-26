@@ -153,7 +153,7 @@ export default function Workout() {
       return () => clearTimeout(t);
     }
   }, [left, rest]);
-  useEffect(() => { if (rest) scheduleRestAlert(rest.endAt, rest.next); else cancelRestAlert(); }, [rest?.endAt]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (rest) scheduleRestAlert(rest.endAt, rest.next, rest.endAt - rest.total * 1000); else cancelRestAlert(); }, [rest?.endAt]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { keepScreenOn(true); return () => { keepScreenOn(false); cancelRestAlert(); }; }, []);
 
   const x = exs[cur];

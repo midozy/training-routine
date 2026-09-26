@@ -4,7 +4,7 @@
  * Thin wrapper over Capacitor plugins. Every function is a safe no-op on the web,
  * so the same code runs on Vercel and inside the iOS app.
  */
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { KeepAwake } from '@capacitor-community/keep-awake';
@@ -13,6 +13,12 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 export const isNative = () => Capacitor.isNativePlatform();
 
 const REST_ID = 4201;
+
+/** Lock-screen / Dynamic Island countdown (Live Activity). Native: ios/App/App/RestActivityPlugin.swift. */
+const RestActivity = registerPlugin<{
+  start(o: { startAt: number; endAt: number; nextUp: string }): Promise<{ started: boolean; reason?: string }>;
+  end(): Promise<void>;
+}>('RestActivity');
 
 export async function initNative() { /* status bar style is set by applyTheme() */ }
 
@@ -57,12 +63,17 @@ export async function setRestAlertsEnabled(on: boolean) {
   if (!on) await cancelRestAlert();
 }
 
-/** Lock-screen alert when rest ends (fires even if the phone is locked or the app is in the background). */
-export async function scheduleRestAlert(endAt: number, nextUp: string) {
+/**
+ * Rest on the lock screen: a live countdown (Live Activity) plus an alert when rest ends
+ * (fires even if the phone is locked or the app is in the background). Calling it again
+ * during the same rest (+15s / −15s) updates the countdown.
+ */
+export async function scheduleRestAlert(endAt: number, nextUp: string, startAt: number = Date.now()) {
   if (!isNative()) return;
   if (!restAlertsEnabled()) return cancelRestAlert();
+  try { await RestActivity.start({ startAt, endAt, nextUp }); } catch (e) { console.warn('[rest] live activity failed:', (e as Error)?.message ?? e); }
   try {
-    await cancelRestAlert();
+    await LocalNotifications.cancel({ notifications: [{ id: REST_ID }] }); // replace the pending alert, keep the countdown
     if (!(await ensureNotifyPermission())) return;
     await LocalNotifications.schedule({
       notifications: [{ id: REST_ID, title: 'Rest over — GO', body: nextUp, schedule: { at: new Date(endAt), allowWhileIdle: true } }],
@@ -72,6 +83,7 @@ export async function scheduleRestAlert(endAt: number, nextUp: string) {
 
 export async function cancelRestAlert() {
   if (!isNative()) return;
+  try { await RestActivity.end(); } catch {}
   try { await LocalNotifications.cancel({ notifications: [{ id: REST_ID }] }); } catch {}
 }
 

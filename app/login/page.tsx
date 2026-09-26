@@ -19,7 +19,7 @@ export default function Login() {
       : await supabase.auth.signUp({ email, password });
     setBusy(false);
     if (res.error) {
-      setMsg(res.error.message.includes('Database error') ? 'Sign-ups are closed for this app.' : res.error.message);
+      setMsg(res.error.message.includes('Database error') ? 'Sign-ups are currently closed.' : res.error.message);
     } else if (mode === 'up' && !res.data.session) {
       const r = await supabase.auth.signInWithPassword({ email, password });
       if (r.error) setMsg(r.error.message);
@@ -45,6 +45,9 @@ export default function Login() {
         <button type="button" className="eyebrow w-full text-center underline underline-offset-4" onClick={() => setMode(mode === 'in' ? 'up' : 'in')}>
           {mode === 'in' ? 'First time? Create your account' : 'Have an account? Sign in'}
         </button>
+        <p className="text-xs text-sub text-center">
+          By continuing you agree to the <a href="/terms/" className="underline">Terms &amp; health disclaimer</a> and <a href="/privacy/" className="underline">Privacy policy</a>.
+        </p>
       </form>
     </div>
   );

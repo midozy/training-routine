@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { Session as AuthSession } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { initNative } from '@/lib/native';
 
 const NAV = [
   { href: '/', label: 'Today' },
@@ -14,23 +15,29 @@ const NAV = [
   { href: '/plan', label: 'Plan' },
 ];
 
+// Reachable without signing in (App Store requires the privacy policy to be public).
+const PUBLIC = ['/login', '/privacy', '/terms'];
+
 export default function Shell({ children }: { children: React.ReactNode }) {
-  const path = usePathname();
+  const raw = usePathname();
+  const path = raw.length > 1 ? raw.replace(/\/$/, '') : raw; // trailingSlash-safe
   const router = useRouter();
   const [session, setSession] = useState<AuthSession | null | undefined>(undefined);
 
   useEffect(() => {
+    initNative();
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
     const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => data.subscription.unsubscribe();
   }, []);
 
+  const isPublic = PUBLIC.includes(path);
   useEffect(() => {
-    if (session === null && path !== '/login') router.replace('/login');
+    if (session === null && !isPublic) router.replace('/login');
     if (session && path === '/login') router.replace('/');
-  }, [session, path, router]);
+  }, [session, path, isPublic, router]);
 
-  if (path === '/login') return <main className="min-h-dvh">{children}</main>;
+  if (isPublic) return <main className="min-h-dvh">{children}</main>;
   if (!session) return <div className="min-h-dvh grid place-items-center eyebrow">Loading</div>;
 
   // Workout is a focused, full-screen flow with its own chrome.

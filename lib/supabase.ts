@@ -39,7 +39,7 @@ export async function fetchAll<T>(build: (from: number, to: number) => PromiseLi
 export async function getSettings(): Promise<Settings> {
   const { data } = await supabase.from('user_settings').select('*').maybeSingle();
   if (data) return data as Settings;
-  const { data: plan } = await supabase.from('plans').select('id').eq('slug', 'split-2').single();
+  const { data: plan } = await supabase.from('plans').select('id').eq('slug', 'split-2').maybeSingle();
   const { data: created, error } = await supabase
     .from('user_settings')
     .insert({ active_plan_id: plan?.id ?? null, next_position: 0 })

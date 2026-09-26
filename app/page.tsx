@@ -30,8 +30,9 @@ export default function Today() {
     (async () => {
       const s = await getSettings();
       setSettings(s);
+      if (!s.active_plan_id) { setSettings(s); return; }
       const [{ data: p }, { data: d }, { data: sess }, { data: b }] = await Promise.all([
-        supabase.from('plans').select('*').eq('id', s.active_plan_id!).single(),
+        supabase.from('plans').select('*').eq('id', s.active_plan_id!).maybeSingle(),
         supabase.from('plan_days').select('*').eq('plan_id', s.active_plan_id!).order('position'),
         supabase.from('workout_sessions').select('*').order('started_at', { ascending: false }).limit(30),
         supabase.from('bodyweight_logs').select('weight_kg, logged_on').order('logged_on', { ascending: false }).limit(1).maybeSingle(),
@@ -45,7 +46,14 @@ export default function Today() {
     })();
   }, []);
 
-  if (!settings || !plan) return <div className="eyebrow pt-10">Loading</div>;
+  if (!settings) return <div className="eyebrow pt-10">Loading</div>;
+  if (!plan || days.length === 0) return (
+    <div className="pt-10">
+      <h1 className="display text-[64px]">No plan<br /><span className="hl">yet.</span></h1>
+      <p className="mt-6 text-lg max-w-xs">Your account doesn&apos;t have a training plan assigned. Plans you can use will appear under Plan.</p>
+      <Link href="/plan" className="btn-ink w-full mt-8">Go to Plan →</Link>
+    </div>
+  );
   const day = days[settings.next_position % days.length];
   const totalSets = exercises.reduce((a, e) => a + e.target_reps.length, 0);
   const done = recent.filter((r) => r.finished_at);
@@ -58,7 +66,7 @@ export default function Today() {
     setBusy(true);
     const { data, error } = await supabase.from('workout_sessions').insert({ plan_day_id: day.id, day_name: day.name }).select('id').single();
     setBusy(false);
-    if (!error && data) router.push(`/workout/${data.id}`);
+    if (!error && data) router.push(`/workout?id=${data.id}`);
   }
 
   async function restDone() {
@@ -78,7 +86,7 @@ export default function Today() {
       </div>
 
       {open && (
-        <Link href={`/workout/${open.id}`} className="mt-5 flex items-center justify-between bg-volt px-4 h-14">
+        <Link href={`/workout?id=${open.id}`} className="mt-5 flex items-center justify-between bg-volt px-4 h-14">
           <span className="font-display font-bold uppercase text-lg tracking-wide">Resume · {open.day_name}</span>
           <span className="text-xl">→</span>
         </Link>
@@ -130,7 +138,7 @@ export default function Today() {
           <div className="eyebrow mb-2">Recent</div>
           <div className="border-t-2 border-ink">
             {done.slice(0, 4).map((r) => (
-              <Link key={r.id} href={`/workout/${r.id}`} className="flex justify-between py-3 border-b border-rule">
+              <Link key={r.id} href={`/workout?id=${r.id}`} className="flex justify-between py-3 border-b border-rule">
                 <span className="font-medium">{r.day_name}</span><span className="text-sub text-sm">{fmtDate(r.started_at)}</span>
               </Link>
             ))}

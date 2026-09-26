@@ -1,33 +1,77 @@
 # Training Routine
 
-Mobile-first training log for the Team Zoher **High Volume Pro Split 1 & 2** plans.
-Next.js 16 (App Router, client-side), Tailwind v4, Recharts, Supabase (Postgres + Auth + RLS).
+Mobile-first training log for the Team Zoher **High Volume Pro Split 1 & 2**. The codebase produces two things:
 
-## What it does
-- **Today**: next day in the rotation (split days + rest), exercise list, one tap to start.
-- **Workout logger**: weight × reps per set, prefilled from your last session, trainer tempo cues, auto rest timer (beep + vibrate), PR badge, notes. Finishing advances the rotation.
-- **Progress**: per-exercise estimated 1RM, top set and volume trends; weekly sets per muscle (weeks start Saturday).
-- **Body**: daily bodyweight (7-day average, weekly change, trend) and measurements.
-- **Plan**: switch Split 1 / Split 2, set the next day, start any day, default rest time.
+- **Web app:** static export deployed by Vercel from GitHub `main` → https://training-routine-five.vercel.app
+- **iOS app:** the same build wrapped with Capacitor 8, with native lock-screen rest alerts, haptics and keep-awake.
 
-## Backend (already provisioned)
-- Supabase project `training-routine` (`danzdvismbezkymgstfu`, eu-central-1).
-- Schema: `supabase/schema.sql`. Plan data: `data/plans.mjs` → `supabase/seed.sql`.
-- Only `mohamed@el-samman.com` can create an account (DB trigger on `auth.users`); every user table is locked to its owner by RLS.
+Stack: Next.js 16 (static export), Tailwind v4, Recharts, Supabase (Postgres + Auth + RLS), Capacitor 8 (iOS, Swift Package Manager).
 
-## Deploy to Vercel (from your Mac)
+---
+
+## iOS: install on your iPhone (personal use)
+
+### One-time setup on the Mac
+1. Install **Xcode** from the Mac App Store and open it once so it installs its components.
+2. Install **Node.js 22 LTS** (nodejs.org) if you don't already have it.
+3. Get the code:
+   ```bash
+   git clone https://github.com/midozy/training-routine.git
+   cd training-routine
+   npm install
+   ```
+4. Join the **Apple Developer Program** (US$99/year, developer.apple.com/programs). Approval can take a day or two. Until it arrives, a free Apple ID can install the app on your phone over a cable, but that install stops working after 7 days.
+
+### Build and run
 ```bash
-cd ~/Development/"Training Routine"
-npm install
-npx vercel --prod      # log in, accept defaults (framework: Next.js)
+npm run ios        # builds the web app, copies it into the iOS project, opens Xcode
 ```
-No environment variables are required (the Supabase URL and publishable key are client-safe and have defaults in `lib/supabase.ts`). You can override them with `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_KEY`.
+In Xcode:
+1. Select the **App** target → **Signing & Capabilities** → tick *Automatically manage signing* → choose your **Team**.
+2. Plug in your iPhone, select it in the device menu at the top, and press **Run ▶**.
+3. On the iPhone the first time: **Settings → General → VPN & Device Management → trust** your developer certificate. With a free account you also need **Settings → Privacy & Security → Developer Mode → On**.
+4. When the first rest timer starts, allow notifications. This is what makes the lock-screen "Rest over — GO" alert work.
 
-Alternative: push this folder to a GitHub repo and import it at vercel.com/new.
+### TestFlight (no cable, auto-updates, needs the paid membership)
+1. In **App Store Connect → Apps → +**, create the app with bundle ID `com.elsamman.trainingroutine`. The name must be unique on the store; a working title is fine for now.
+2. In Xcode, set the device to **Any iOS Device (arm64)**, then **Product → Archive → Distribute App → App Store Connect → Upload**.
+3. In App Store Connect → **TestFlight**, add yourself as an **internal tester**. Internal builds don't need App Review.
+4. Install the **TestFlight** app on the iPhone and accept the invite.
 
-## First use
-1. Open the Vercel URL on your phone → "First time? Create your account" → your email + a password (8+ chars).
-2. Add to Home Screen (Safari: Share → Add to Home Screen) to run it full-screen like an app.
+### Shipping an update
+Web: push to `main` (Vercel redeploys). iOS: `npm run ios:sync`, bump **Build** in Xcode, then Archive → Upload again. TestFlight builds expire after 90 days.
+
+---
+
+## What's already publish-ready
+
+| Requirement | Status |
+|---|---|
+| In-app account deletion (guideline 5.1.1(v)) | Done. Plan → Delete account (`delete_my_account()` RPC; all data cascades) |
+| Public privacy policy URL | Done. `/privacy/` (reachable without signing in) |
+| Health disclaimer / terms | Done. `/terms/`, linked from sign-in and Plan |
+| Trainer's plans hidden from other users | Done. `plans.owner_id` = your account; RLS only shows your own or shared (`owner_id is null`) plans |
+| Sign-ups switch | Done. Closed now (allowlist only); one SQL update opens them (below) |
+| Native features, not a bare web wrapper (guideline 4.2) | Done. Lock-screen rest alerts, haptics, keep-awake, native splash/icon |
+| Export compliance | Done. `ITSAppUsesNonExemptEncryption = false` |
+
+## Still to do before a public App Store release
+
+1. **Content rights.** Get written permission from Team Zoher to publish the plans, or ship with your own programming or a plan builder. Their plans stay private to your account either way.
+2. **Exercise photos.** The GIFs come from free-exercise-db (Unlicense), but the photos' original source is unclear. Replace them with photos or illustrations you own or have licensed.
+3. **Plans for new users.** New accounts currently see a "No plan yet" screen. Add shared template plans (`owner_id = null`) or a simple plan builder.
+4. **Open sign-ups:** `update app_settings set value = 'true' where key = 'signups_open';`. Also turn on **email confirmation** in Supabase Auth settings; allowlisted accounts skip it today.
+5. **Supabase Auth:** enable *Leaked password protection*, set the Site URL, and add a password-reset flow.
+6. **Store listing:** app name, subtitle, screenshots (6.9″ iPhone), description, support URL, privacy "nutrition" labels (email + fitness data, not used for tracking), age rating, and a demo account for the reviewer.
+7. **Payments (optional):** any subscription must use Apple In-App Purchase.
+8. **Offline logging (recommended):** queue sets locally when the gym has no signal and sync them later.
+
+---
+
+## Backend
+Supabase project `training-routine` (ref `danzdvismbezkymgstfu`, eu-central-1).
+- Schema: `supabase/schema.sql` (initial). Later migrations were applied through the Supabase migrations history.
+- Plan source data: `data/plans.mjs`. Exercise instructions: `data/guide-text.json` → `lib/guide.json`.
 
 ## Local dev
 ```bash

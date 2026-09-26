@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { PageHead } from '@/components/Shell';
@@ -48,7 +49,16 @@ export default function PlanPage() {
 
   async function startDay(d: PlanDay) {
     const { data } = await supabase.from('workout_sessions').insert({ plan_day_id: d.id, day_name: d.name }).select('id').single();
-    if (data) router.push(`/workout/${data.id}`);
+    if (data) router.push(`/workout?id=${data.id}`);
+  }
+
+  async function deleteAccount() {
+    if (!confirm('Delete your account? This permanently erases every workout, set, bodyweight entry and measurement.')) return;
+    if (prompt('Type DELETE to confirm') !== 'DELETE') return;
+    const { error } = await supabase.rpc('delete_my_account');
+    if (error) return alert(error.message);
+    await supabase.auth.signOut();
+    router.replace('/login');
   }
 
   if (!settings) return <div className="eyebrow pt-10">Loading</div>;
@@ -118,7 +128,17 @@ export default function PlanPage() {
         <p className="text-xs text-sub mt-2">Trainer-specified rests (e.g. dips, 20 s) always win.</p>
       </section>
 
-      <button className="eyebrow text-ink underline underline-offset-4 mt-12" onClick={() => supabase.auth.signOut()}>Sign out</button>
+      <section className="mt-12 border-t-2 border-ink pt-4">
+        <div className="eyebrow mb-3">Account</div>
+        <div className="flex flex-col items-start gap-4">
+          <button className="eyebrow text-ink underline underline-offset-4" onClick={() => supabase.auth.signOut()}>Sign out</button>
+          <div className="flex gap-5">
+            <Link href="/privacy" className="eyebrow text-ink underline underline-offset-4">Privacy</Link>
+            <Link href="/terms" className="eyebrow text-ink underline underline-offset-4">Terms & health</Link>
+          </div>
+          <button className="eyebrow !text-alert underline underline-offset-4 mt-4" onClick={deleteAccount}>Delete account</button>
+        </div>
+      </section>
       {guide && <ExerciseGuide name={guide.label} cue={guide.cue} onClose={() => setGuide(null)} />}
     </div>
   );

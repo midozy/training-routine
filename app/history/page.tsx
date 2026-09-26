@@ -44,7 +44,7 @@ export default function History() {
           {list.map((r) => {
             const d = new Date(r.started_at);
             return (
-              <Link key={r.id} href={`/workout/${r.id}`} className="grid grid-cols-[48px_1fr_auto] gap-4 items-center py-3 border-b border-rule">
+              <Link key={r.id} href={`/workout?id=${r.id}`} className="grid grid-cols-[48px_1fr_auto] gap-4 items-center py-3 border-b border-rule">
                 <div className="text-center">
                   <div className="num text-3xl leading-none">{d.getDate()}</div>
                   <div className="eyebrow mt-1">{d.toLocaleDateString('en-GB', { weekday: 'short' })}</div>

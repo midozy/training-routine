@@ -1,8 +1,9 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ExerciseGuide from '@/components/ExerciseGuide';
+import { tap, success, keepScreenOn, scheduleRestAlert, cancelRestAlert } from '@/lib/native';
 import { supabase, getSettings, epley, fmtDate, fmtKg, type PlanExercise, type Session, type SetLog } from '@/lib/supabase';
 
 type Row = { weight: string; reps: string; logged: boolean; touched: boolean };
@@ -26,8 +27,7 @@ function beep() {
 }
 
 export default function Workout() {
-  const { id } = useParams<{ id: string }>();
-  const sessionId = Number(id);
+  const sessionId = Number(useSearchParams().get('id'));
   const router = useRouter();
 
   const [session, setSession] = useState<Session | null>(null);
@@ -143,8 +143,17 @@ export default function Workout() {
     });
   }, [x, sel]);
 
+  // Mirror the in-app rest timer to a lock-screen notification (iOS app only; no-op on web).
+  useEffect(() => {
+    if (rest) scheduleRestAlert(rest.endAt, rest.next); else cancelRestAlert();
+  }, [rest?.endAt]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep the screen on while logging (iOS app only).
+  useEffect(() => { keepScreenOn(true); return () => { keepScreenOn(false); cancelRestAlert(); }; }, []);
+
   const step = (field: 'weight' | 'reps', d: number) => {
     if (!row) return;
+    tap('light');
     const v = Math.max(0, (Number(row[field]) || 0) + d);
     patch({ [field]: field === 'weight' ? fmtKg(Math.round(v * 100) / 100) : String(Math.round(v)) });
   };
@@ -166,6 +175,7 @@ export default function Workout() {
       { onConflict: 'session_id,plan_exercise_id,set_number' },
     );
     if (error) return alert(error.message);
+    tap('medium');
     const wasLogged = row.logged;
     const list = r.map((z, k) => (k === sel ? { ...z, logged: true, touched: true } : z));
     setRows((all) => ({ ...all, [x.id]: all[x.id].map((z, k) => (k === sel ? { ...z, logged: true, touched: true } : z)) }));
@@ -200,6 +210,7 @@ export default function Workout() {
 
   async function finish() {
     setSaving(true);
+    success();
     await supabase.from('workout_sessions').update({ finished_at: new Date().toISOString(), notes: notes || null }).eq('id', sessionId);
     const st = await getSettings();
     if (dayMeta && dayMeta.plan_id === st.active_plan_id) {

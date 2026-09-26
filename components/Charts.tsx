@@ -1,42 +1,46 @@
 'use client';
 
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar, Legend } from 'recharts';
+import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar, Cell } from 'recharts';
 
-const axis = { stroke: '#8b94a1', fontSize: 11, tickLine: false, axisLine: false } as const;
-const tip = { contentStyle: { background: '#15181d', border: '1px solid #252a31', borderRadius: 12, fontSize: 12 }, labelStyle: { color: '#8b94a1' } };
+const INK = '#111111', SUB = '#6d675c', RULE = '#d8d1c3', VOLT = '#d7ff3a';
+const axis = { stroke: SUB, fontSize: 11, tickLine: false, axisLine: false, fontFamily: 'Barlow Condensed', fontWeight: 600 } as const;
+const tip = {
+  contentStyle: { background: INK, border: 0, borderRadius: 0, fontSize: 13, color: '#f4f1ea', fontFamily: 'Archivo Variable' },
+  labelStyle: { color: VOLT, fontFamily: 'Barlow Condensed', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '.08em' },
+  itemStyle: { color: '#f4f1ea' },
+};
 
-export function TrendChart({ data, lines, unit = 'kg', height = 220 }: {
-  data: Record<string, number | string>[]; lines: { key: string; name: string; color: string; dashed?: boolean }[]; unit?: string; height?: number;
+/** Primary series drawn in ink over a volt area; optional secondary series dashed. */
+export function TrendChart({ data, main, secondary, unit = 'kg', height = 220 }: {
+  data: Record<string, number | string>[]; main: { key: string; name: string }; secondary?: { key: string; name: string }; unit?: string; height?: number;
 }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-        <CartesianGrid stroke="#252a31" vertical={false} />
-        <XAxis dataKey="label" {...axis} minTickGap={24} />
-        <YAxis {...axis} domain={['auto', 'auto']} unit={unit === 'kg' ? '' : unit} />
-        <Tooltip {...tip} formatter={(v) => [`${v} ${unit}`]} />
-        {lines.length > 1 && <Legend wrapperStyle={{ fontSize: 11 }} />}
-        {lines.map((l) => (
-          <Line key={l.key} type="monotone" dataKey={l.key} name={l.name} stroke={l.color} strokeWidth={2}
-            strokeDasharray={l.dashed ? '4 4' : undefined} dot={{ r: 2.5, fill: l.color }} connectNulls />
-        ))}
-      </LineChart>
+      <ComposedChart data={data} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
+        <CartesianGrid stroke={RULE} vertical={false} />
+        <XAxis dataKey="label" {...axis} minTickGap={28} />
+        <YAxis {...axis} domain={['auto', 'auto']} width={44} />
+        <Tooltip {...tip} formatter={(v, n) => [`${v} ${unit}`, n]} cursor={{ stroke: INK, strokeWidth: 1 }} />
+        <Area type="monotone" dataKey={main.key} name={main.name} stroke="none" fill={VOLT} fillOpacity={0.9} baseValue="dataMin" />
+        {secondary && <Line type="monotone" dataKey={secondary.key} name={secondary.name} stroke={SUB} strokeWidth={1.5} strokeDasharray="4 4" dot={false} />}
+        <Line type="monotone" dataKey={main.key} name={main.name} stroke={INK} strokeWidth={2.5} dot={{ r: 3, fill: INK, stroke: INK }} activeDot={{ r: 5, fill: VOLT, stroke: INK, strokeWidth: 2 }} />
+      </ComposedChart>
     </ResponsiveContainer>
   );
 }
 
-export function StackedBars({ data, keys, colors, height = 240 }: {
-  data: Record<string, number | string>[]; keys: string[]; colors: Record<string, string>; height?: number;
-}) {
+/** Column chart; the last column is highlighted in volt. */
+export function Columns({ data, dataKey, height = 180, unit = '' }: { data: Record<string, number | string>[]; dataKey: string; height?: number; unit?: string }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-        <CartesianGrid stroke="#252a31" vertical={false} />
+      <BarChart data={data} margin={{ top: 8, right: 4, left: -24, bottom: 0 }}>
+        <CartesianGrid stroke={RULE} vertical={false} />
         <XAxis dataKey="label" {...axis} />
-        <YAxis {...axis} allowDecimals={false} />
-        <Tooltip {...tip} cursor={{ fill: '#ffffff08' }} />
-        <Legend wrapperStyle={{ fontSize: 11 }} />
-        {keys.map((k) => <Bar key={k} dataKey={k} stackId="a" fill={colors[k]} />)}
+        <YAxis {...axis} allowDecimals={false} width={40} />
+        <Tooltip {...tip} cursor={{ fill: '#11111110' }} formatter={(v) => [`${v}${unit}`, '']} />
+        <Bar dataKey={dataKey} radius={0}>
+          {data.map((_, i) => <Cell key={i} fill={i === data.length - 1 ? VOLT : INK} stroke={INK} strokeWidth={i === data.length - 1 ? 2 : 0} />)}
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );

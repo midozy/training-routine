@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { TrendChart } from '@/components/Charts';
+import { PageHead } from '@/components/Shell';
 import { supabase, fmtKg } from '@/lib/supabase';
 
 type BW = { id: number; logged_on: string; weight_kg: number };
-type M = { id: number; logged_on: string } & Record<(typeof FIELDS)[number]['key'], number | null>;
-
 const FIELDS = [
   { key: 'chest_cm', label: 'Chest', unit: 'cm' },
   { key: 'shoulders_cm', label: 'Shoulders', unit: 'cm' },
@@ -17,8 +16,9 @@ const FIELDS = [
   { key: 'neck_cm', label: 'Neck', unit: 'cm' },
   { key: 'body_fat_pct', label: 'Body fat', unit: '%' },
 ] as const;
+type M = { id: number; logged_on: string } & Record<(typeof FIELDS)[number]['key'], number | null>;
 
-const today = () => new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
+const today = () => new Date().toLocaleDateString('en-CA');
 const short = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
 export default function Body() {
@@ -45,8 +45,7 @@ export default function Body() {
     if (!v) return;
     const { error } = await supabase.from('bodyweight_logs').upsert({ logged_on: date, weight_kg: v }, { onConflict: 'user_id,logged_on' });
     if (error) return alert(error.message);
-    setW('');
-    load();
+    setW(''); load();
   }
 
   async function saveMeasurements(e: React.FormEvent) {
@@ -55,99 +54,95 @@ export default function Body() {
     for (const f of FIELDS) row[f.key] = form[f.key] ? Number(form[f.key].replace(',', '.')) : null;
     const { error } = await supabase.from('measurements').upsert(row, { onConflict: 'user_id,logged_on' });
     if (error) return alert(error.message);
-    setForm({});
-    setShowM(false);
-    load();
+    setForm({}); setShowM(false); load();
   }
 
   async function removeBw(id: number) {
     if (!confirm('Delete this entry?')) return;
-    await supabase.from('bodyweight_logs').delete().eq('id', id);
-    load();
+    await supabase.from('bodyweight_logs').delete().eq('id', id); load();
   }
 
   const last = bw.at(-1);
   const weekAgo = bw.filter((x) => new Date(x.logged_on) <= new Date(Date.now() - 7 * 864e5)).at(-1);
-  const avg7 = (() => {
-    const cut = Date.now() - 7 * 864e5;
-    const r = bw.filter((x) => new Date(x.logged_on).getTime() > cut);
-    return r.length ? r.reduce((a, x) => a + x.weight_kg, 0) / r.length : null;
-  })();
+  const r7 = bw.filter((x) => new Date(x.logged_on).getTime() > Date.now() - 7 * 864e5);
+  const avg7 = r7.length ? r7.reduce((a, x) => a + x.weight_kg, 0) / r7.length : null;
+  const delta = last && weekAgo ? last.weight_kg - weekAgo.weight_kg : null;
   const lastM = ms.at(-1), prevM = ms.at(-2);
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Body</h1>
+    <div>
+      <PageHead eyebrow="Composition" title="Body" />
 
-      <form onSubmit={saveWeight} className="card p-4 space-y-3">
-        <div className="label">Log bodyweight</div>
-        <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
-          <input className="field" type="date" value={date} max={today()} onChange={(e) => setDate(e.target.value)} />
-          <input className="field text-center" inputMode="decimal" placeholder="kg" value={w} onChange={(e) => setW(e.target.value)} />
-          <button className="btn-primary">Save</button>
+      <div className="border-t-2 border-ink pt-3">
+        <div className="eyebrow">Latest · {last ? short(last.logged_on) : 'no entries'}</div>
+        <div className="flex items-end gap-2 mt-2">
+          <span className="num text-[96px] leading-[.8]">{last ? fmtKg(last.weight_kg) : '—'}</span>
+          <span className="text-sub mb-1">kg</span>
+          {delta != null && <span className={`ml-auto num text-2xl px-2 ${delta <= 0 ? 'bg-volt' : 'bg-ink text-paper'}`}>{delta >= 0 ? '+' : ''}{delta.toFixed(1)} <span className="text-xs font-sans">/wk</span></span>}
         </div>
-      </form>
-
-      <div className="grid grid-cols-3 gap-3">
-        <div className="card p-3"><div className="label">Latest</div><div className="text-xl font-bold mt-1">{last ? fmtKg(last.weight_kg) : '—'}</div></div>
-        <div className="card p-3"><div className="label">7-day avg</div><div className="text-xl font-bold mt-1">{avg7 ? avg7.toFixed(1) : '—'}</div></div>
-        <div className="card p-3"><div className="label">vs 1 wk</div><div className="text-xl font-bold mt-1">{last && weekAgo ? `${last.weight_kg - weekAgo.weight_kg >= 0 ? '+' : ''}${(last.weight_kg - weekAgo.weight_kg).toFixed(1)}` : '—'}</div></div>
+        <div className="eyebrow mt-3">7-day average · <span className="text-ink">{avg7 ? `${avg7.toFixed(1)} kg` : '—'}</span></div>
       </div>
 
+      <form onSubmit={saveWeight} className="mt-6 grid grid-cols-[1fr_1fr_auto] gap-3 items-end">
+        <label><span className="eyebrow">Date</span><input className="field" type="date" value={date} max={today()} onChange={(e) => setDate(e.target.value)} /></label>
+        <label><span className="eyebrow">Weight kg</span><input className="field num text-2xl" inputMode="decimal" placeholder="00.0" value={w} onChange={(e) => setW(e.target.value)} /></label>
+        <button className="btn-ink h-12 px-4 text-lg">Log</button>
+      </form>
+
       {bw.length > 1 && (
-        <section className="card p-4">
-          <div className="label mb-2">Bodyweight trend</div>
-          <TrendChart data={bw.map((x) => ({ label: short(x.logged_on), kg: x.weight_kg }))} lines={[{ key: 'kg', name: 'Bodyweight', color: '#22c55e' }]} height={180} />
+        <section className="mt-8">
+          <div className="eyebrow mb-3">Trend</div>
+          <TrendChart data={bw.map((x) => ({ label: short(x.logged_on), kg: x.weight_kg }))} main={{ key: 'kg', name: 'Bodyweight' }} height={180} />
         </section>
       )}
 
-      <section className="card p-4">
-        <div className="flex items-center justify-between">
-          <div className="label">Measurements{lastM ? ` · ${short(lastM.logged_on)}` : ''}</div>
-          <button className="text-sm text-accent" onClick={() => setShowM(!showM)}>{showM ? 'Cancel' : '+ New'}</button>
+      <section className="mt-10">
+        <div className="flex items-baseline justify-between border-b-2 border-ink pb-2">
+          <span className="display text-3xl">Measurements</span>
+          <button className="eyebrow text-ink" onClick={() => setShowM(!showM)}>{showM ? 'Cancel ✕' : '+ New entry'}</button>
         </div>
         {showM && (
-          <form onSubmit={saveMeasurements} className="mt-3 space-y-3">
-            <div className="grid grid-cols-2 gap-2">
+          <form onSubmit={saveMeasurements} className="mt-4">
+            <div className="grid grid-cols-2 gap-x-5 gap-y-4">
               {FIELDS.map((f) => (
-                <label key={f.key} className="block">
-                  <span className="text-xs text-muted">{f.label} ({f.unit})</span>
-                  <input className="field mt-1" inputMode="decimal" value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
+                <label key={f.key}><span className="eyebrow">{f.label} · {f.unit}</span>
+                  <input className="field num text-2xl" inputMode="decimal" value={form[f.key] ?? ''} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
                 </label>
               ))}
             </div>
-            <button className="btn-primary w-full">Save measurements for {short(date)}</button>
+            <button className="btn-ink w-full mt-6">Save for {short(date)}</button>
           </form>
         )}
         {lastM && !showM && (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3">
-            {FIELDS.map((f) => {
-              const v = lastM[f.key], p = prevM?.[f.key];
-              if (v == null) return null;
-              const d = p != null ? Number(v) - Number(p) : null;
-              return (
-                <div key={f.key} className="flex justify-between text-sm">
-                  <span className="text-muted">{f.label}</span>
-                  <span className="tabular-nums">{Number(v)}{f.unit === '%' ? '%' : ''}{d != null && d !== 0 && <span className={`ml-1 text-xs ${d > 0 ? 'text-good' : 'text-red-400'}`}>{d > 0 ? '+' : ''}{d.toFixed(1)}</span>}</span>
-                </div>
-              );
-            })}
-          </div>
+          <>
+            <div className="eyebrow mt-3">{short(lastM.logged_on)}{prevM ? ` · vs ${short(prevM.logged_on)}` : ''}</div>
+            <div className="grid grid-cols-2">
+              {FIELDS.map((f) => {
+                const v = lastM[f.key], p = prevM?.[f.key];
+                if (v == null) return null;
+                const d = p != null ? Number(v) - Number(p) : null;
+                return (
+                  <div key={f.key} className="flex items-baseline justify-between py-2.5 border-b border-rule odd:pr-4 even:pl-4 even:border-l">
+                    <span className="text-sm">{f.label}</span>
+                    <span className="num text-2xl">{Number(v)}{d != null && d !== 0 && <span className="text-xs font-sans text-sub ml-1">{d > 0 ? '+' : ''}{d.toFixed(1)}</span>}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
-        {!lastM && !showM && <p className="text-sm text-muted mt-2">No measurements yet.</p>}
+        {!lastM && !showM && <p className="text-sub mt-3">No measurements yet.</p>}
       </section>
 
       {bw.length > 0 && (
-        <section>
-          <div className="label mb-2">Bodyweight log</div>
-          <div className="card divide-y divide-line">
-            {[...bw].reverse().slice(0, 14).map((x) => (
-              <div key={x.id} className="flex justify-between p-3 text-sm">
-                <span>{short(x.logged_on)}</span>
-                <span className="flex gap-4"><span className="tabular-nums">{fmtKg(x.weight_kg)} kg</span><button className="text-muted" onClick={() => removeBw(x.id)}>✕</button></span>
-              </div>
-            ))}
-          </div>
+        <section className="mt-10">
+          <div className="display text-3xl border-b-2 border-ink pb-2">Weigh-ins</div>
+          {[...bw].reverse().slice(0, 14).map((x) => (
+            <div key={x.id} className="flex items-center justify-between py-2.5 border-b border-rule">
+              <span className="text-sm">{short(x.logged_on)}</span>
+              <span className="flex items-center gap-5"><span className="num text-xl">{fmtKg(x.weight_kg)}</span><button className="text-sub text-sm" onClick={() => removeBw(x.id)}>✕</button></span>
+            </div>
+          ))}
         </section>
       )}
     </div>

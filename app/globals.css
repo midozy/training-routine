@@ -1,28 +1,38 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #0b0d10;
-  --color-card: #15181d;
-  --color-line: #252a31;
-  --color-muted: #8b94a1;
-  --color-accent: #f97316;
-  --color-good: #22c55e;
+  --color-paper: #f4f1ea;
+  --color-paper-2: #ebe6db;
+  --color-ink: #111111;
+  --color-sub: #6d675c;
+  --color-rule: #d8d1c3;
+  --color-volt: #d7ff3a;
+  --color-alert: #e5372b;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-sans: "Archivo Variable", "Helvetica Neue", Arial, sans-serif;
 }
 
-html, body { background: var(--color-bg); color: #e8ebef; }
+html, body { background: var(--color-paper); color: var(--color-ink); }
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
 }
-input, select, textarea { font-size: 16px; } /* stop iOS zoom on focus */
+@layer base { input, select, textarea { font-size: 16px; border-radius: 0; } }
 input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-input[type=number] { -moz-appearance: textfield; }
+::selection { background: var(--color-volt); }
 
-@utility card { @apply rounded-2xl bg-card border border-line; }
-@utility btn { @apply inline-flex items-center justify-center rounded-xl px-4 h-12 font-semibold active:scale-[.98] transition disabled:opacity-50; }
-@utility btn-primary { @apply btn bg-accent text-black; }
-@utility btn-ghost { @apply btn border border-line text-white; }
-@utility field { @apply w-full h-12 rounded-xl bg-bg border border-line px-3 text-white outline-none focus:border-accent; }
-@utility label { @apply text-xs uppercase tracking-wide text-muted; }
-.safe-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
+@utility display { font-family: var(--font-display); text-transform: uppercase; line-height: .88; letter-spacing: -.01em; font-weight: 800; }
+@utility num { font-family: var(--font-display); font-variant-numeric: tabular-nums; font-weight: 700; }
+@utility eyebrow { font-size: 11px; line-height: 1; text-transform: uppercase; letter-spacing: .16em; font-weight: 600; color: var(--color-sub); }
+@utility btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; height: 3.5rem; padding: 0 1.25rem;
+  font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; text-transform: uppercase; letter-spacing: .04em;
+  transition: transform .08s; &:active { transform: scale(.985); } &:disabled { opacity: .4; } }
+@utility btn-volt { @apply btn bg-volt text-ink; }
+@utility btn-ink { @apply btn bg-ink text-paper; }
+@utility btn-line { @apply btn border-2 border-ink text-ink; }
+@utility field { @apply w-full h-12 bg-transparent border-0 border-b-2 border-ink px-0 text-lg outline-none placeholder:text-sub/60 focus:border-b-[3px]; }
+@utility hl { background: linear-gradient(transparent 55%, var(--color-volt) 55%); padding: 0 .1em; }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-top { padding-top: env(safe-area-inset-top); }

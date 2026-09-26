@@ -21,24 +21,28 @@ export default function Login() {
     if (res.error) {
       setMsg(res.error.message.includes('Database error') ? 'Sign-ups are closed for this app.' : res.error.message);
     } else if (mode === 'up' && !res.data.session) {
-      // Account is auto-confirmed server-side; sign straight in.
       const r = await supabase.auth.signInWithPassword({ email, password });
       if (r.error) setMsg(r.error.message);
     }
   }
 
   return (
-    <div className="min-h-dvh grid place-items-center px-6">
-      <form onSubmit={submit} className="w-full max-w-sm space-y-4">
-        <div className="mb-8">
-          <div className="text-accent font-bold tracking-widest text-xs">HIGH VOLUME PRO SPLIT</div>
-          <h1 className="text-3xl font-bold mt-1">Training Routine</h1>
-        </div>
-        <input className="field" type="email" autoComplete="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input className="field" type="password" autoComplete={mode === 'in' ? 'current-password' : 'new-password'} placeholder="Password" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} required />
-        <button className="btn-primary w-full" disabled={busy}>{busy ? '…' : mode === 'in' ? 'Sign in' : 'Create account'}</button>
-        {msg && <p className="text-sm text-red-400">{msg}</p>}
-        <button type="button" className="text-sm text-muted w-full" onClick={() => setMode(mode === 'in' ? 'up' : 'in')}>
+    <div className="min-h-dvh flex flex-col px-6 pt-[calc(env(safe-area-inset-top)+28px)] pb-[calc(env(safe-area-inset-bottom)+24px)] max-w-md mx-auto">
+      <div className="eyebrow">Team Zoher · High Volume Pro Split</div>
+      <h1 className="display text-[96px] mt-6">Train<br /><span className="hl">Heavy.</span><br />Log it.</h1>
+
+      <form onSubmit={submit} className="mt-auto space-y-6">
+        <label className="block">
+          <span className="eyebrow">Email</span>
+          <input className="field" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        </label>
+        <label className="block">
+          <span className="eyebrow">Password</span>
+          <input className="field" type="password" autoComplete={mode === 'in' ? 'current-password' : 'new-password'} minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} required />
+        </label>
+        {msg && <p className="text-sm text-alert">{msg}</p>}
+        <button className="btn-ink w-full" disabled={busy}>{busy ? '…' : mode === 'in' ? 'Sign in →' : 'Create account →'}</button>
+        <button type="button" className="eyebrow w-full text-center underline underline-offset-4" onClick={() => setMode(mode === 'in' ? 'up' : 'in')}>
           {mode === 'in' ? 'First time? Create your account' : 'Have an account? Sign in'}
         </button>
       </form>

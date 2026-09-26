@@ -32,6 +32,13 @@ In Xcode:
 3. On the iPhone the first time: **Settings → General → VPN & Device Management → trust** your developer certificate. With a free account you also need **Settings → Privacy & Security → Developer Mode → On**.
 4. When the first rest timer starts, allow notifications. This is what makes the lock-screen "Rest over — GO" alert work.
 
+### Apple Health
+Heavy reads weight, body fat, lean mass, height, resting heart rate, daily steps, daily active energy and sleep, adds Apple Watch heart rate and active energy to finished sessions, and saves each finished session to Health as a strength-training workout.
+- Native side: `ios/App/App/HeavyHealthPlugin.swift` (a local Capacitor plugin, registered in `MainViewController.swift`). Entitlement: `App/App.entitlements`. Permission texts: `NSHealthShareUsageDescription` / `NSHealthUpdateUsageDescription` in `Info.plist`.
+- JS side: `lib/health.ts`. Sync runs when the app opens and when it returns to the foreground (at most every 15 minutes), first importing a year of history, then only new data with a 3-day overlap. Manual weigh-ins always win over Health for the same day.
+- Data: `health_samples` (one row per sample, per day for steps/energy, per night for sleep), `bodyweight_logs.source`, and `workout_sessions.avg_hr / max_hr / active_kcal / health_workout_id`. Migration: `supabase/migrations/20260926_apple_health_import.sql`.
+- In Xcode, check **Signing & Capabilities** shows **HealthKit** for the App target (automatic signing registers it on the App ID). Turn it on in the app under Profile → Apple Health.
+
 ### TestFlight (no cable, auto-updates, needs the paid membership)
 1. In **App Store Connect → Apps → +**, create the app with bundle ID `com.elsamman.heavy`. The name must be unique on the store; a working title is fine for now.
 2. In Xcode, set the device to **Any iOS Device (arm64)**, then **Product → Archive → Distribute App → App Store Connect → Upload**.
@@ -54,6 +61,7 @@ Web: push to `main` (Vercel redeploys). iOS: `npm run ios:sync`, bump **Build** 
 | Sign-ups switch | Done. Closed now (allowlist only); one SQL update opens them (below) |
 | Native features, not a bare web wrapper (guideline 4.2) | Done. Lock-screen rest alerts, haptics, keep-awake, native splash/icon |
 | Export compliance | Done. `ITSAppUsesNonExemptEncryption = false` |
+| Apple Health (guideline 5.1.3) | Done. Clear permission texts, used only for in-app trends, privacy policy updated, never stored in iCloud. Add *Health & Fitness* to the privacy labels |
 
 ## Still to do before a public App Store release
 

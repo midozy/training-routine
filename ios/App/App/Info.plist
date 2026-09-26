@@ -26,6 +26,10 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Heavy reads your weight, body fat, lean mass, height, resting heart rate, steps, active energy and sleep to chart your progress, and your workout heart rate to add it to your sessions.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Heavy saves each finished workout to Apple Health as a strength training session.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -19,7 +19,8 @@ export type PlanExercise = {
 export type Settings = { user_id: string; active_plan_id: number | null; next_position: number; default_rest_seconds: number; units: 'kg' | 'lb'; theme: 'system' | 'light' | 'dark' };
 export type Profile = { user_id: string; display_name: string | null; avatar_path: string | null; height_cm: number | null; birth_date: string | null; training_since: string | null; goal: 'bulk' | 'cut' | 'maintain' | 'recomp' | null; target_weight_kg: number | null; target_body_fat_pct: number | null };
 export type Exercise = { id: number; name: string; muscle: string; owner_id: string | null };
-export type Session = { id: number; plan_day_id: number | null; day_name: string; started_at: string; finished_at: string | null; notes: string | null };
+export type Session = { id: number; plan_day_id: number | null; day_name: string; started_at: string; finished_at: string | null; notes: string | null;
+  health_workout_id?: string | null; avg_hr?: number | null; max_hr?: number | null; active_kcal?: number | null };
 export type SetLog = {
   id: number; session_id: number; plan_exercise_id: number | null; exercise_id: number;
   set_number: number; weight_kg: number; reps: number; logged_at: string;

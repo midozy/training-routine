@@ -189,7 +189,7 @@ function Body() {
     e.preventDefault();
     const v = Number(val.replace(',', '.'));
     if (!v) return;
-    const { error } = await supabase.from('bodyweight_logs').upsert({ logged_on: date, weight_kg: toKg(v) }, { onConflict: 'user_id,logged_on' });
+    const { error } = await supabase.from('bodyweight_logs').upsert({ logged_on: date, weight_kg: toKg(v), source: 'manual', external_id: null }, { onConflict: 'user_id,logged_on' });
     if (error) return alert(error.message);
     setVal(''); load();
   }
@@ -237,6 +237,8 @@ function Body() {
         </section>
       )}
 
+      <HealthBlock />
+
       <div className="flex items-end justify-between px-4 mt-7 mb-2">
         <span className="eyebrow">Measurements{lastM ? ` · ${short(lastM.logged_on)}` : ''}</span>
         <button className="text-[15px] font-semibold text-ink" onClick={() => setShowM(!showM)}>{showM ? 'Cancel' : '+ New'}</button>
@@ -282,6 +284,91 @@ function Body() {
             ))}
           </div>
         </>
+      )}
+    </>
+  );
+}
+
+/* ================= Apple Health ================= */
+type HS = { kind: string; day: string; value: number; meta: Record<string, number | string> | null };
+const hm = (mins: number) => `${Math.floor(mins / 60)}:${String(Math.round(mins % 60)).padStart(2, '0')}`;
+
+function HealthBlock() {
+  const { w, fw, units } = usePrefs();
+  const [rows, setRows] = useState<HS[] | null>(null);
+
+  useEffect(() => {
+    const since = new Date(Date.now() - 180 * 864e5).toLocaleDateString('en-CA');
+    fetchAll<HS>((a, b) => supabase.from('health_samples').select('kind, day, value, meta')
+      .in('kind', ['body_fat', 'lean_mass', 'resting_hr', 'sleep', 'steps', 'active_energy'])
+      .gte('day', since).order('day').range(a, b))
+      .then((r) => setRows(r.map((x) => ({ ...x, value: Number(x.value) })))).catch(() => setRows([]));
+  }, []);
+
+  const by = useMemo(() => {
+    const m: Record<string, HS[]> = {};
+    for (const r of rows ?? []) (m[r.kind] ??= []).push(r);
+    // one value per day for point samples (last reading of the day)
+    for (const k of ['body_fat', 'lean_mass', 'resting_hr']) {
+      const d = new Map<string, HS>(); for (const r of m[k] ?? []) d.set(r.day, r); m[k] = [...d.values()];
+    }
+    return m;
+  }, [rows]);
+
+  if (!rows || rows.length === 0) return null;
+  const last = (k: string) => by[k]?.at(-1);
+  const avg = (k: string, n: number) => {
+    const cut = new Date(Date.now() - n * 864e5).toLocaleDateString('en-CA');
+    const xs = (by[k] ?? []).filter((r) => r.day > cut);
+    return xs.length ? xs.reduce((a, r) => a + r.value, 0) / xs.length : null;
+  };
+  const bf = last('body_fat'), lm = last('lean_mass'), rhr = last('resting_hr');
+  const sleep7 = avg('sleep', 7), steps7 = avg('steps', 7), kcal7 = avg('active_energy', 7);
+  const recent = (k: string, n: number) => (by[k] ?? []).slice(-n);
+
+  return (
+    <>
+      <div className="flex items-end justify-between px-4 mt-7 mb-2">
+        <span className="eyebrow">From Apple Health</span>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <Stat label="Body fat" value={bf ? String(bf.value) : '—'} unit="%" />
+        <Stat label="Lean mass" value={lm ? fw(lm.value) : '—'} unit={units} />
+        <Stat label="Resting HR" value={rhr ? String(Math.round(rhr.value)) : '—'} unit="bpm" />
+        <Stat label="Sleep · 7d" value={sleep7 != null ? hm(sleep7) : '—'} unit="h" />
+        <Stat label="Steps · 7d" value={steps7 != null ? (steps7 >= 10000 ? `${(steps7 / 1000).toFixed(1)}k` : String(Math.round(steps7))) : '—'} unit="" />
+        <Stat label="Active · 7d" value={kcal7 != null ? String(Math.round(kcal7)) : '—'} unit="kcal" />
+      </div>
+
+      {(by.body_fat?.length ?? 0) > 1 && (
+        <section className="card p-4 mt-3">
+          <div className="eyebrow mb-3">Body fat trend</div>
+          <TrendChart height={160} unit="%" data={by.body_fat.map((x) => ({ label: short(x.day), v: x.value }))} main={{ key: 'v', name: 'Body fat' }} />
+        </section>
+      )}
+      {(by.lean_mass?.length ?? 0) > 1 && (
+        <section className="card p-4 mt-3">
+          <div className="eyebrow mb-3">Lean mass trend</div>
+          <TrendChart height={160} unit={units} data={by.lean_mass.map((x) => ({ label: short(x.day), v: w(x.value) }))} main={{ key: 'v', name: 'Lean mass' }} />
+        </section>
+      )}
+      {(by.resting_hr?.length ?? 0) > 1 && (
+        <section className="card p-4 mt-3">
+          <div className="eyebrow mb-3">Resting heart rate</div>
+          <TrendChart height={160} unit="bpm" data={by.resting_hr.map((x) => ({ label: short(x.day), v: Math.round(x.value) }))} main={{ key: 'v', name: 'Resting HR' }} />
+        </section>
+      )}
+      {(by.sleep?.length ?? 0) > 0 && (
+        <section className="card p-4 mt-3">
+          <div className="eyebrow mb-3">Sleep · last 14 nights · hours</div>
+          <Columns data={recent('sleep', 14).map((x) => ({ label: short(x.day), h: Math.round((x.value / 60) * 10) / 10 }))} dataKey="h" unit=" h" />
+        </section>
+      )}
+      {(by.steps?.length ?? 0) > 0 && (
+        <section className="card p-4 mt-3">
+          <div className="eyebrow mb-3">Steps · last 14 days</div>
+          <Columns data={recent('steps', 14).map((x) => ({ label: short(x.day), s: Math.round(x.value) }))} dataKey="s" />
+        </section>
       )}
     </>
   );

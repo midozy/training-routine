@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import type { Session as AuthSession } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { PrefsProvider } from '@/lib/prefs';
+import { syncHealth } from '@/lib/health';
 
 // Reachable without signing in (App Store requires the privacy policy to be public).
 const PUBLIC = ['/login', '/privacy', '/terms'];
@@ -37,6 +38,15 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => data.subscription.unsubscribe();
   }, []);
+
+  // Apple Health: import on open and on every return to the foreground (throttled inside).
+  useEffect(() => {
+    if (!session) return;
+    syncHealth();
+    const onVis = () => document.visibilityState === 'visible' && syncHealth();
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [session]);
 
   const isPublic = PUBLIC.includes(path);
   useEffect(() => {

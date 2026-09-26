@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { PageHead, SectionLabel } from '@/components/Shell';
 import { usePrefs } from '@/lib/prefs';
-import { notifyStatus, requestNotify } from '@/lib/native';
+import { notifyStatus, requestNotify, isNative } from '@/lib/native';
+import { connectHealth, disconnectHealth, getHealthPrefs, healthAvailable, setWriteWorkouts, syncHealth, type HealthPrefs, type SyncResult } from '@/lib/health';
 import { supabase, fetchAll, epley, type Profile } from '@/lib/supabase';
 
 const GOALS = [
@@ -55,6 +56,9 @@ export default function ProfilePage() {
       supabase.from('bodyweight_logs').select('weight_kg, logged_on').order('logged_on'),
       supabase.from('measurements').select('body_fat_pct, logged_on').not('body_fat_pct', 'is', null).order('logged_on', { ascending: false }).limit(1),
     ]);
+    const { data: hbf } = await supabase.from('health_samples').select('value, day').eq('kind', 'body_fat').order('day', { ascending: false }).order('end_at', { ascending: false }).limit(1);
+    const bfM = bf?.[0], bfH = hbf?.[0];
+    const bfLatest = bfH && (!bfM || bfH.day >= bfM.logged_on) ? Number(bfH.value) : bfM?.body_fat_pct != null ? Number(bfM.body_fat_pct) : null;
     const done = sessions.filter((s) => s.finished_at);
     const now = new Date();
     const month = done.filter((s) => { const d = new Date(s.started_at); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).length;
@@ -76,7 +80,7 @@ export default function ProfilePage() {
       workouts: done.length, month, streak, volumeKg: vol, sets: sets.length,
       prs: [...best.values()].sort((a, b) => b.e1rm - a.e1rm).slice(0, 6),
       bwFirst: bw?.length ? Number(bw[0].weight_kg) : null, bwLast: bw?.length ? Number(bw.at(-1)!.weight_kg) : null,
-      bfLast: bf?.[0]?.body_fat_pct != null ? Number(bf[0].body_fat_pct) : null,
+      bfLast: bfLatest,
     });
   }
 
@@ -218,6 +222,10 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* ---------- Apple Health ---------- */}
+      <SectionLabel>Apple Health</SectionLabel>
+      <HealthSection onSynced={loadStats} />
+
       {/* ---------- Account ---------- */}
       <SectionLabel>Account</SectionLabel>
       <div className="group">
@@ -273,6 +281,63 @@ export default function ProfilePage() {
         </div>
       )}
     </div>
+  );
+}
+
+const ago = (iso: string) => {
+  const m = Math.round((Date.now() - new Date(iso).getTime()) / 60e3);
+  return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : short(iso);
+};
+
+function HealthSection({ onSynced }: { onSynced: () => void }) {
+  const [avail, setAvail] = useState<boolean | null>(null);
+  const [prefs, setPrefs] = useState<HealthPrefs>(getHealthPrefs());
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => { healthAvailable().then(setAvail); }, []);
+
+  const report = (r: SyncResult) => {
+    setPrefs(getHealthPrefs());
+    if (!r.ok && r.error) return setMsg(`Sync failed: ${r.error}`);
+    const c = r.counts;
+    if (c) {
+      const got = (c.body_mass ?? 0) + (c.body_fat ?? 0) + (c.lean_mass ?? 0) + (c.resting_hr ?? 0) + (c.sleep ?? 0) + (c.steps ?? 0);
+      setMsg(got ? `Imported ${c.body_mass ?? 0} weigh-ins, ${c.sleep ?? 0} nights of sleep and ${c.steps ?? 0} days of steps.` : 'Up to date. If nothing arrives, check access in iPhone Settings › Health › Data Access & Devices › Heavy.');
+      onSynced();
+    }
+  };
+  async function run(fn: () => Promise<SyncResult>) {
+    setBusy(true); setMsg(null);
+    try { report(await fn()); } catch (e) { setMsg((e as Error).message); }
+    setBusy(false);
+  }
+
+  if (!isNative() || avail === false) return <div className="group"><div className="row"><span className="flex-1">Apple Health</span><span className="text-[13px] text-sub">iPhone app only</span></div></div>;
+  if (avail == null) return <div className="group"><div className="row text-sub">Checking…</div></div>;
+
+  if (!prefs.enabled) return (
+    <div className="card p-4">
+      <p className="text-[15px] leading-snug">Bring in weight, body fat, lean mass, height, resting heart rate, steps, active energy and sleep, and save your workouts to Health.</p>
+      <button className="btn-volt w-full mt-4" disabled={busy} onClick={() => run(connectHealth)}>{busy ? 'Connecting…' : 'Connect Apple Health'}</button>
+      {msg && <p className="text-[13px] text-sub mt-3">{msg}</p>}
+    </div>
+  );
+
+  return (
+    <>
+      <div className="group">
+        <div className="row">
+          <span className="flex-1">Connected<span className="block text-[13px] text-sub">{prefs.lastSync ? `Synced ${ago(prefs.lastSync)}` : 'Not synced yet'}</span></span>
+          <button className="pill" disabled={busy} onClick={() => run(() => syncHealth({ force: true }))}>{busy ? 'Syncing…' : 'Sync now'}</button>
+        </div>
+        <div className="row"><span className="flex-1">Save workouts to Health</span>
+          <Segmented value={prefs.writeWorkouts ? 'on' : 'off'} options={[['on', 'On'], ['off', 'Off']]} onChange={(v) => { setWriteWorkouts(v === 'on'); setPrefs(getHealthPrefs()); }} /></div>
+        <div className="row"><span className="flex-1 text-[13px] text-sub">Choose what Heavy can read in iPhone Settings › Health › Data Access &amp; Devices › Heavy.</span></div>
+        <button className="row" onClick={() => { disconnectHealth(); setPrefs(getHealthPrefs()); setMsg(null); }}><span className="flex-1 text-alert font-medium">Stop syncing</span></button>
+      </div>
+      {msg && <p className="text-[13px] text-sub mt-2 px-4">{msg}</p>}
+    </>
   );
 }
 

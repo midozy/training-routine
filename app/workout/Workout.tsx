@@ -6,6 +6,7 @@ import ExerciseGuide from '@/components/ExerciseGuide';
 import ExercisePicker from '@/components/ExercisePicker';
 import { usePrefs } from '@/lib/prefs';
 import { tap, success, keepScreenOn, scheduleRestAlert, cancelRestAlert } from '@/lib/native';
+import { saveSessionToHealth } from '@/lib/health';
 import { supabase, epley, fmtDate, type PlanExercise, type Session, type SetLog } from '@/lib/supabase';
 
 type Row = { weight: string; reps: string; logged: boolean; touched: boolean }; // weight is in the user's display unit
@@ -246,6 +247,7 @@ export default function Workout() {
     setSaving(true);
     success();
     await supabase.from('workout_sessions').update({ finished_at: new Date().toISOString(), notes: notes || null }).eq('id', sessionId);
+    saveSessionToHealth(sessionId).catch(() => {}); // Apple Health write-back (iPhone app, if enabled)
     if (dayMeta && dayMeta.plan_id === settings?.active_plan_id) {
       const { data: all } = await supabase.from('plan_days').select('id').eq('plan_id', dayMeta.plan_id);
       await supabase.from('user_settings').update({ next_position: (dayMeta.position + 1) % (all?.length || 1), updated_at: new Date().toISOString() }).eq('user_id', settings.user_id);
@@ -380,6 +382,13 @@ export default function Workout() {
                 <div className="card p-4"><div className="eyebrow">Sets</div><div className="num text-4xl mt-1">{stats.sets}<span className="text-sub text-2xl">/{stats.total}</span></div></div>
                 <div className="card p-4"><div className="eyebrow">Volume</div><div className="num text-4xl mt-1">{Math.round(stats.vol).toLocaleString()}<span className="text-sub text-base font-sans ml-1">{units}</span></div></div>
               </div>
+              {(session.avg_hr != null || session.active_kcal != null) && (
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  <div className="card p-3"><div className="eyebrow">Avg HR</div><div className="num text-3xl mt-1">{session.avg_hr != null ? Math.round(Number(session.avg_hr)) : '—'}<span className="text-sub text-sm font-sans ml-1">bpm</span></div></div>
+                  <div className="card p-3"><div className="eyebrow">Max HR</div><div className="num text-3xl mt-1">{session.max_hr != null ? Math.round(Number(session.max_hr)) : '—'}<span className="text-sub text-sm font-sans ml-1">bpm</span></div></div>
+                  <div className="card p-3"><div className="eyebrow">Active</div><div className="num text-3xl mt-1">{session.active_kcal != null ? Math.round(Number(session.active_kcal)) : '—'}<span className="text-sub text-sm font-sans ml-1">kcal</span></div></div>
+                </div>
+              )}
               {exs.length > 0 && (
                 <div className="group mt-4">
                   {exs.map((e, i) => {

@@ -13,6 +13,7 @@ public class RestActivityPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "isSupported", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "start", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "end", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "status", returnType: CAPPluginReturnPromise),
     ]
 
     @objc func isSupported(_ call: CAPPluginCall) {
@@ -59,5 +60,14 @@ public class RestActivityPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             call.resolve()
         }
+    }
+
+    /// Diagnostics: running activities and their states.
+    @objc func status(_ call: CAPPluginCall) {
+        guard #available(iOS 16.2, *) else { call.resolve(["activities": []]); return }
+        let list: [[String: Any]] = Activity<RestActivityAttributes>.activities.map { a in
+            ["id": a.id, "state": String(describing: a.activityState), "endAt": a.content.state.endAt.timeIntervalSince1970 * 1000]
+        }
+        call.resolve(["enabled": ActivityAuthorizationInfo().areActivitiesEnabled, "activities": list])
     }
 }

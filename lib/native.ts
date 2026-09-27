@@ -18,6 +18,7 @@ const REST_ID = 4201;
 const RestActivity = registerPlugin<{
   start(o: { startAt: number; endAt: number; nextUp: string }): Promise<{ started: boolean; reason?: string }>;
   end(): Promise<void>;
+  status(): Promise<{ enabled: boolean; activities: { id: string; state: string; endAt: number }[] }>;
 }>('RestActivity');
 
 export async function initNative() { /* status bar style is set by applyTheme() */ }

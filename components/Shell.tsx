@@ -5,6 +5,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import type { Session as AuthSession } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { currentSession } from '@/lib/session';
+import { pullAll, startSync } from '@/lib/sync';
+import { clearLocal } from '@/lib/offline';
+import OfflineBanner from '@/components/OfflineBanner';
 import { PrefsProvider } from '@/lib/prefs';
 import { syncHealth } from '@/lib/health';
 import Tour from '@/components/Tour';
@@ -35,10 +39,17 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<AuthSession | null | undefined>(undefined);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    startSync();
+    currentSession().then(setSession); // falls back to the saved login when offline
+    const { data } = supabase.auth.onAuthStateChange((e, s) => {
+      if (s) setSession(s);
+      else if (e === 'SIGNED_OUT') { void clearLocal(); setSession(null); } // a null session at start-up is handled by currentSession above
+    });
     return () => data.subscription.unsubscribe();
   }, []);
+
+  // Keep the copy saved on the phone fresh whenever a signed-in user is present and online.
+  useEffect(() => { if (session?.user.id) void pullAll(true); }, [session?.user.id]);
 
   // Apple Health: import on open and on every return to the foreground (throttled inside).
   useEffect(() => {
@@ -80,6 +91,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
       <Tour userId={session.user.id} />
+      <OfflineBanner />
     </PrefsProvider>
   );
 }

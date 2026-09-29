@@ -9,6 +9,7 @@ import { weekStartOf, weekRangeLong, type WeekStart } from '@/lib/week';
 import { notifyStatus, requestNotify, isNative, restAlertsEnabled, setRestAlertsEnabled } from '@/lib/native';
 import { connectHealth, disconnectHealth, getHealthPrefs, healthAvailable, setWriteWorkouts, syncHealth, type HealthPrefs, type SyncResult } from '@/lib/health';
 import { supabase, fetchAll, epley, type Profile } from '@/lib/supabase';
+import { currentUser } from '@/lib/session';
 
 const GOALS = [
   { v: 'bulk', label: 'Bulk' }, { v: 'cut', label: 'Cut' }, { v: 'maintain', label: 'Maintain' }, { v: 'recomp', label: 'Recomp' },
@@ -37,8 +38,8 @@ export default function ProfilePage() {
 
   useEffect(() => {
     (async () => {
-      const [{ data: u }, { data: p }] = await Promise.all([supabase.auth.getUser(), supabase.from('profiles').select('*').maybeSingle()]);
-      setEmail(u.user?.email ?? '');
+      const [u, { data: p }] = await Promise.all([currentUser(), supabase.from('profiles').select('*').maybeSingle()]);
+      setEmail(u?.email ?? '');
       setProfile(p ?? {});
       if (p?.avatar_path) {
         const { data } = await supabase.storage.from('avatars').createSignedUrl(p.avatar_path, 3600);
@@ -94,8 +95,8 @@ export default function ProfilePage() {
     setUploading(true);
     try {
       const blob = await squareJpeg(file, 512);
-      const { data: u } = await supabase.auth.getUser();
-      const path = `${u.user!.id}/avatar-${Date.now()}.jpg`;
+      const u = await currentUser();
+      const path = `${u!.id}/avatar-${Date.now()}.jpg`;
       const { error } = await supabase.storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
       if (error) throw error;
       if (profile?.avatar_path) await supabase.storage.from('avatars').remove([profile.avatar_path]);

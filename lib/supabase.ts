@@ -1,13 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
+import { heavyFetch } from './offline';
 
 // Publishable (client-safe) values; data is protected by Row Level Security.
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://danzdvismbezkymgstfu.supabase.co';
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_KEY || 'sb_publishable_kHaeEQBW1wGS8pdgJExqdw_Xlxd2afq';
+export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://danzdvismbezkymgstfu.supabase.co';
+export const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_KEY || 'sb_publishable_kHaeEQBW1wGS8pdgJExqdw_Xlxd2afq';
 
 export const supabase = createClient(
   SUPABASE_URL,
   SUPABASE_KEY,
-  { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } },
+  { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }, global: { fetch: heavyFetch } },
 );
 
 export type Plan = { id: number; slug: string | null; name: string; description: string | null; owner_id: string | null; archived: boolean; source_plan_id: number | null };

@@ -45,12 +45,15 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<Settings | null>(null);
 
   const reload = useCallback(async () => {
-    const s = await getSettings();
-    setSettings(s);
-    applyTheme(s.theme ?? 'system');
+    try {
+      const s = await getSettings();
+      setSettings(s);
+      applyTheme(s.theme ?? 'system');
+    } catch { /* offline with nothing saved yet: retried when the connection returns */ }
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { window.addEventListener('online', reload); return () => window.removeEventListener('online', reload); }, [reload]);
 
   // Follow the phone's appearance live when set to "system".
   useEffect(() => {

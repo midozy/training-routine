@@ -8,6 +8,7 @@ import ExerciseGuide from '@/components/ExerciseGuide';
 import Icon from '@/components/Icon';
 import { usePrefs } from '@/lib/prefs';
 import { supabase, type Plan, type PlanDay, type PlanExercise } from '@/lib/supabase';
+import { currentUser } from '@/lib/session';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -76,8 +77,8 @@ export default function PlanPage() {
   }
   async function newPlan() {
     const name = prompt('Plan name', 'My plan'); if (!name) return;
-    const { data: u } = await supabase.auth.getUser();
-    const { data, error } = await supabase.from('plans').insert({ name, owner_id: u.user!.id, description: null }).select('id').single();
+    const u = await currentUser();
+    const { data, error } = await supabase.from('plans').insert({ name, owner_id: u!.id, description: null }).select('id').single();
     if (error) return alert(error.message);
     await supabase.from('plan_days').insert({ plan_id: data.id, position: 0, name: 'Day 1', is_rest: false });
     router.push(`/plan/edit?id=${data.id}`);

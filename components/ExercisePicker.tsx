@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { guideFor } from '@/components/ExerciseGuide';
 import Icon from '@/components/Icon';
 import { supabase, type Exercise } from '@/lib/supabase';
+import { currentUser } from '@/lib/session';
 
 const MUSCLES = ['Chest', 'Back', 'Shoulders', 'Rear Delts', 'Traps', 'Biceps', 'Triceps', 'Quads', 'Hamstrings', 'Glutes', 'Calves', 'Abs', 'Other'];
 
@@ -29,8 +30,8 @@ export default function ExercisePicker({ title = 'Choose exercise', highlightMus
 
   async function create() {
     const name = newName.trim(); if (!name) return;
-    const { data: u } = await supabase.auth.getUser();
-    const { data, error } = await supabase.from('exercises').insert({ name, muscle: newMuscle, owner_id: u.user!.id }).select('*').single();
+    const u = await currentUser();
+    const { data, error } = await supabase.from('exercises').insert({ name, muscle: newMuscle, owner_id: u!.id }).select('*').single();
     if (error) return alert(error.message.includes('duplicate') ? 'You already have an exercise with that name.' : error.message);
     onPick(data as Exercise);
   }

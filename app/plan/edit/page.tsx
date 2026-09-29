@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ExercisePicker from '@/components/ExercisePicker';
+import Icon from '@/components/Icon';
 import { supabase, type Exercise, type Plan, type PlanDay, type PlanExercise } from '@/lib/supabase';
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -88,9 +89,9 @@ function Editor() {
               <span className="num text-lg text-sub w-7">{pad(i + 1)}</span>
               <input className="flex-1 min-w-0 bg-transparent font-display font-bold uppercase text-2xl tracking-wide outline-none" defaultValue={d.name}
                 key={`${d.id}-${d.name}`} onBlur={(e) => renameDay(d, e.target.value)} aria-label="Day name" />
-              <IconBtn label="Move day up" disabled={i === 0} onClick={() => moveDay(i, -1)}>↑</IconBtn>
-              <IconBtn label="Move day down" disabled={i === days.length - 1} onClick={() => moveDay(i, 1)}>↓</IconBtn>
-              <IconBtn label="Delete day" onClick={() => deleteDay(d)} danger>✕</IconBtn>
+              <IconBtn label="Move day up" disabled={i === 0} onClick={() => moveDay(i, -1)}><Icon name="up" size={16} /></IconBtn>
+              <IconBtn label="Move day down" disabled={i === days.length - 1} onClick={() => moveDay(i, 1)}><Icon name="down" size={16} /></IconBtn>
+              
             </div>
             {d.is_rest ? (
               <div className="card p-4 text-sub text-[15px]">Rest day</div>
@@ -102,21 +103,22 @@ function Editor() {
                       <div className="font-medium truncate">{e.label}</div>
                       <div className="text-[13px] text-sub truncate">{e.target_reps.length} × {e.target_reps.join('·')} {e.unit === 'steps' ? 'steps' : ''} · {e.rest_seconds}s rest{e.cue ? ' · cue' : ''}</div>
                     </button>
-                    <IconBtn label="Move up" disabled={j === 0} onClick={() => moveEx(d.id, j, -1)}>↑</IconBtn>
-                    <IconBtn label="Move down" disabled={j === list.length - 1} onClick={() => moveEx(d.id, j, 1)}>↓</IconBtn>
-                    <IconBtn label="Remove" onClick={() => deleteEx(e)} danger>✕</IconBtn>
+                    <IconBtn label="Move up" disabled={j === 0} onClick={() => moveEx(d.id, j, -1)}><Icon name="up" size={16} /></IconBtn>
+                    <IconBtn label="Move down" disabled={j === list.length - 1} onClick={() => moveEx(d.id, j, 1)}><Icon name="down" size={16} /></IconBtn>
+                    
                   </div>
                 ))}
-                <button className="row text-ink font-semibold" onClick={() => setPicker({ dayId: d.id })}>＋ Add exercise</button>
+                <button className="row text-ink font-semibold" onClick={() => setPicker({ dayId: d.id })}><Icon name="plus" size={18} />Add exercise</button>
               </div>
             )}
+          <button className="text-[14px] font-semibold text-alert h-11 px-1 mt-1" onClick={() => deleteDay(d)}>Delete day</button>
           </section>
         );
       })}
 
       <div className="grid grid-cols-2 gap-2 mt-6">
-        <button className="btn-line" onClick={() => addDay(false)}>＋ Training day</button>
-        <button className="btn-line" onClick={() => addDay(true)}>＋ Rest day</button>
+        <button className="btn-line" onClick={() => addDay(false)}><Icon name="plus" size={16} />Training day</button>
+        <button className="btn-line" onClick={() => addDay(true)}><Icon name="plus" size={16} />Rest day</button>
       </div>
       <button className="btn-ink w-full mt-3" onClick={() => router.push('/plan')}>Done</button>
 
@@ -137,6 +139,7 @@ function Editor() {
         <ExerciseEditor
           ex={editing}
           onChangeExercise={() => setPicker({ replace: editing })}
+          onDelete={async () => { const r = deleteEx(editing); if (r) { await r; setEditing(null); } }}
           onClose={() => setEditing(null)}
           onSave={async (patch) => { await run(() => supabase.from('plan_exercises').update(patch).eq('id', editing.id)); setEditing(null); }}
         />
@@ -145,17 +148,20 @@ function Editor() {
   );
 }
 
-function IconBtn({ children, label, onClick, disabled, danger }: { children: React.ReactNode; label: string; onClick: () => void; disabled?: boolean; danger?: boolean }) {
+function IconBtn({ children, label, onClick, disabled }: { children: React.ReactNode; label: string; onClick: () => void; disabled?: boolean }) {
+  // 44×44pt hit area around a 36pt visual circle.
   return (
-    <button aria-label={label} title={label} onClick={onClick} disabled={disabled}
-      className={`shrink-0 w-9 h-9 rounded-full grid place-items-center text-[15px] bg-card2 disabled:opacity-30 ${danger ? 'text-alert' : 'text-ink'}`}>{children}</button>
+    <button aria-label={label} title={label} onClick={onClick} disabled={disabled} className="shrink-0 w-11 h-11 grid place-items-center text-ink disabled:opacity-30">
+      <span className="w-9 h-9 rounded-full grid place-items-center bg-card2">{children}</span>
+    </button>
   );
 }
 
 const RESTS = [20, 45, 60, 90, 120, 180];
+const fmtRest = (s: number) => (s < 120 ? `${s}s` : `${s / 60} min`);
 
-function ExerciseEditor({ ex, onSave, onClose, onChangeExercise }: {
-  ex: PlanExercise; onSave: (p: Partial<PlanExercise>) => void; onClose: () => void; onChangeExercise: () => void;
+function ExerciseEditor({ ex, onSave, onClose, onChangeExercise, onDelete }: {
+  ex: PlanExercise; onSave: (p: Partial<PlanExercise>) => void; onClose: () => void; onChangeExercise: () => void; onDelete: () => void;
 }) {
   const [label, setLabel] = useState(ex.label);
   const [reps, setReps] = useState<string[]>(ex.target_reps.map(String));
@@ -183,7 +189,7 @@ function ExerciseEditor({ ex, onSave, onClose, onChangeExercise }: {
           <div className="card p-4">
             <div className="text-[13px] text-sub">Exercise</div>
             <input className="w-full bg-transparent display text-[30px] outline-none mt-1" value={label} onChange={(e) => setLabel(e.target.value)} aria-label="Name shown in plan" />
-            <button className="pill mt-2" onClick={onChangeExercise}>⇄ Change exercise</button>
+            <button className="pill mt-2" onClick={onChangeExercise}><Icon name="swap" size={14} />Change exercise</button>
           </div>
 
           <div>
@@ -217,7 +223,7 @@ function ExerciseEditor({ ex, onSave, onClose, onChangeExercise }: {
           <div>
             <span className="text-[13px] text-sub px-1">Rest between sets</span>
             <div className="flex flex-wrap gap-1.5 mt-1.5">
-              {RESTS.map((s) => <button key={s} onClick={() => setRest(s)} className={`pill ${rest === s ? '!bg-volt !text-[#111]' : ''}`}>{s < 60 ? `${s}s` : `${s / 60} min`}</button>)}
+              {RESTS.map((s) => <button key={s} onClick={() => setRest(s)} className={`pill ${rest === s ? '!bg-volt !text-[#111]' : ''}`}>{fmtRest(s)}</button>)}
             </div>
             <p className="text-[12px] text-sub mt-1.5 px-1">90s follows your default rest from Profile.</p>
           </div>
@@ -226,6 +232,7 @@ function ExerciseEditor({ ex, onSave, onClose, onChangeExercise }: {
             <span className="text-[13px] text-sub px-1">Coach cue (optional)</span>
             <textarea className="field !h-24 py-3 mt-1" value={cue} onChange={(e) => setCue(e.target.value)} placeholder="e.g. Up fast, 3 s down" />
           </label>
+          <button type="button" className="btn-line w-full !text-alert" onClick={onDelete}>Remove from this day</button>
         </div>
       </div>
     </div>

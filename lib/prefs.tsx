@@ -34,7 +34,10 @@ export function applyTheme(theme: Settings['theme']) {
   if (theme === 'system') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', theme);
   try { localStorage.setItem('theme', theme); } catch {}
   const dark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0d0d0b' : '#f4f1ea');
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => {
+    const forDark = theme === 'system' ? (m.getAttribute('media') ?? '').includes('dark') : dark;
+    m.setAttribute('content', forDark ? '#0d0d0b' : '#f4f1ea');
+  });
   setStatusBarDark(dark);
 }
 

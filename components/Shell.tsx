@@ -21,7 +21,7 @@ const ICONS: Record<string, React.ReactNode> = {
 
 const NAV = [
   { href: '/', label: 'Today', icon: 'today' },
-  { href: '/history', label: 'Log', icon: 'log' },
+  { href: '/history', label: 'History', icon: 'log' },
   { href: '/progress', label: 'Progress', icon: 'progress' },
   { href: '/plan', label: 'Plan', icon: 'plan' },
   { href: '/profile', label: 'Profile', icon: 'profile' },

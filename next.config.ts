@@ -5,5 +5,7 @@ const nextConfig: NextConfig = {
   output: 'export',
   trailingSlash: true,
   images: { unoptimized: true },
+  // Dev only: lets a phone on the same Wi-Fi load http://<your-mac-ip>:3000 (Next 16 blocks other hosts by default).
+  allowedDevOrigins: ['10.56.56.25', '10.*.*.*', '192.168.*.*'],
 };
 export default nextConfig;

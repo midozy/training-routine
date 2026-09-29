@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TrendChart, Columns } from '@/components/Charts';
 import { PageHead } from '@/components/Shell';
+import Icon from '@/components/Icon';
 import { usePrefs } from '@/lib/prefs';
 import { supabase, fetchAll, epley } from '@/lib/supabase';
 
@@ -20,6 +21,8 @@ export default function ProgressPage() {
 function Progress() {
   const router = useRouter();
   const tab = useSearchParams().get('tab') === 'body' ? 'body' : 'strength';
+  const { settings } = usePrefs();
+  if (!settings) return <div className="eyebrow pt-10 px-1">Loading</div>; // avoid a kg→lb flash before units load
   return (
     <div>
       <PageHead eyebrow="Your numbers" title="Progress" />
@@ -279,7 +282,7 @@ function Body() {
               <div key={x.id} className="row">
                 <span className="flex-1">{short(x.logged_on)}</span>
                 <span className="num text-xl">{fw(x.weight_kg)} <span className="text-xs text-sub font-sans">{units}</span></span>
-                <button className="text-sub px-1" aria-label="Delete entry" onClick={() => removeBw(x.id)}>✕</button>
+                <button className="text-sub w-11 h-11 -my-2 -mr-3 grid place-items-center" aria-label="Delete entry" onClick={() => removeBw(x.id)}><Icon name="close" size={16} /></button>
               </div>
             ))}
           </div>

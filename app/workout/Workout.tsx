@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ExerciseGuide from '@/components/ExerciseGuide';
 import ExercisePicker from '@/components/ExercisePicker';
+import Icon from '@/components/Icon';
 import { usePrefs } from '@/lib/prefs';
 import { tap, success, keepScreenOn, scheduleRestAlert, cancelRestAlert } from '@/lib/native';
 import { saveSessionToHealth } from '@/lib/health';
@@ -300,12 +301,17 @@ export default function Workout() {
             </button>
             {swapped && <div className="text-[13px] text-sub mt-1">Swapped for today · plan: {x.label}</div>}
             <div className="flex gap-2 mt-3">
-              <button className="pill" onClick={() => setGuideOpen(true)}>▶ How to</button>
-              <button className="pill" onClick={() => (done && !swapped ? alert('Undo the logged sets on this exercise before swapping it.') : setSwapping(true))}>⇄ Swap</button>
-              {swapped && <button className="pill" onClick={() => swapTo(null)}>↺ Back to plan</button>}
+              <button className="pill" onClick={() => setGuideOpen(true)}><Icon name="play" size={12} />How to</button>
+              <button className="pill" onClick={() => (done && !swapped ? alert('Undo the logged sets on this exercise before swapping it.') : setSwapping(true))}><Icon name="swap" size={14} />Swap</button>
+              {swapped && <button className="pill" onClick={() => swapTo(null)}><Icon name="undo" size={14} />Back to plan</button>}
             </div>
-            {x.cue && !swapped && <div className="mt-3 rounded-xl bg-card2 px-3 py-2 text-[15px] leading-snug">▲ {x.cue}</div>}
-            <p className="mt-2 text-[13px] text-sub">{pv?.length ? `Last time: ${pv.map((s) => `${fw(s.weight)}×${s.reps}`).join('  ')}` : 'First time logging this one'}</p>
+            {x.cue && !swapped && <div className="mt-3 rounded-xl bg-card2 px-3 py-2 text-[15px] leading-snug flex gap-2 items-start"><Icon name="bolt" size={16} className="mt-[3px] shrink-0" /><span>{x.cue}</span></div>}
+            {pv?.length ? (
+              <div className="mt-3 flex items-baseline flex-wrap gap-x-3 gap-y-1">
+                <span className="eyebrow">Last time</span>
+                {pv.map((s, i) => <span key={i} className="num text-[20px] leading-none text-ink">{fw(s.weight)}<span className="text-sub">×</span>{s.reps}</span>)}
+              </div>
+            ) : <p className="mt-3 eyebrow">First time logging this one</p>}
           </div>
 
           {/* set strip */}
@@ -314,27 +320,27 @@ export default function Workout() {
               <button key={i} onClick={() => setSel(i)}
                 className={`shrink-0 w-14 h-14 rounded-xl flex flex-col items-center justify-center transition ${i === sel ? 'bg-volt text-[#111] ring-2 ring-ink' : z.logged ? 'bg-ink text-on-ink' : 'bg-card'}`}>
                 <span className="num text-xl leading-none">{z.logged ? z.reps : i + 1}</span>
-                <span className={`text-[10px] font-semibold mt-0.5 ${i === sel ? 'text-[#111]/60' : z.logged ? 'opacity-60' : 'text-sub'}`}>{z.logged ? '✓' : `×${z.reps}`}</span>
+                <span className={`text-[10px] font-semibold mt-0.5 ${i === sel ? 'text-[#111]/60' : z.logged ? 'opacity-60' : 'text-sub'}`}>{z.logged ? <Icon name="check" size={11} strokeWidth={3.2} /> : `×${z.reps}`}</span>
               </button>
             ))}
             <button onClick={addSet} className="shrink-0 w-14 h-14 rounded-xl border-2 border-dashed border-rule text-sub text-2xl" aria-label="Add set">+</button>
           </div>
 
           {/* steppers */}
-          <div className="px-4 mt-4 flex-1 flex flex-col justify-center gap-3">
+          <div className="px-4 py-3 flex-1 flex flex-col justify-center gap-3">
             <Stepper label={`Weight · ${units}`} value={row.weight} onChange={(v) => patch({ weight: v.replace(',', '.') })} onMinus={() => step('weight', -wStep)} onPlus={() => step('weight', wStep)} big inputMode="decimal" />
             <Stepper label={`${unitLbl} · target ${x.target_reps[sel] ?? x.target_reps.at(-1)}`} value={row.reps} onChange={(v) => patch({ reps: v })} onMinus={() => step('reps', -1)} onPlus={() => step('reps', 1)} inputMode="numeric" />
           </div>
 
           {/* actions */}
-          <div className="px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+14px)]">
+          <div className="sticky bottom-0 z-20 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+14px)] bg-bg/95 backdrop-blur border-t border-rule">
             <div className="flex justify-between mb-2 px-1">
               <button className="text-[15px] font-semibold text-ink disabled:opacity-30" disabled={cur === 0} onClick={() => goTo(cur - 1)}>‹ Prev</button>
               {row.logged && <button className="text-[15px] font-semibold text-alert" onClick={undoSet}>Undo set {sel + 1}</button>}
               <button className="text-[15px] font-semibold text-ink disabled:opacity-30" disabled={cur === exs.length - 1} onClick={() => goTo(cur + 1)}>Next ›</button>
             </div>
             {allDone && !session.finished_at ? (
-              <button className="btn-ink w-full !h-16 !text-2xl" onClick={finish} disabled={saving}>Finish workout ✓</button>
+              <button className="btn-ink w-full !h-16 !text-2xl" onClick={finish} disabled={saving}>Finish workout<Icon name="check" size={20} strokeWidth={3} /></button>
             ) : (
               <button className="btn-volt w-full !h-16 !text-2xl" onClick={doneSet}>{row.logged ? `Update set ${sel + 1}` : `Done · set ${sel + 1} of ${r.length}`}</button>
             )}
@@ -395,8 +401,8 @@ export default function Workout() {
                     const rr = rows[e.id] ?? []; const d = rr.filter((z) => z.logged).length; const complete = d === rr.length;
                     return (
                       <button key={e.id} onClick={() => goTo(i)} className={`row ${i === cur ? '!bg-volt/40' : ''}`}>
-                        <span className={`num text-lg w-7 ${complete ? '' : 'text-sub'}`}>{complete ? '✓' : pad(i + 1)}</span>
-                        <span className={`flex-1 ${complete ? 'line-through decoration-2 text-sub' : ''}`}>{effName(e)}{swaps[e.id] ? ' ⇄' : ''}</span>
+                        <span className={`num text-lg w-7 ${complete ? '' : 'text-sub'}`}>{complete ? <Icon name="check" size={16} strokeWidth={3} /> : pad(i + 1)}</span>
+                        <span className={`flex-1 ${complete ? 'line-through decoration-2 text-sub' : ''}`}>{effName(e)}{swaps[e.id] && <Icon name="swap" size={13} className="inline ml-1.5 -mt-0.5" />}</span>
                         <span className="num text-lg">{d}/{rr.length}</span>
                       </button>
                     );
@@ -420,7 +426,7 @@ export default function Workout() {
                 <span className="eyebrow px-1">Session notes</span>
                 <textarea className="field !h-24 py-3 mt-2" placeholder="Energy, pump, anything to remember…" value={notes} onChange={(e) => setNotes(e.target.value)} onBlur={saveNotes} />
               </label>
-              {!session.finished_at && exs.length > 0 && <button className="btn-ink w-full mt-5" onClick={finish} disabled={saving}>Finish workout ✓</button>}
+              {!session.finished_at && exs.length > 0 && <button className="btn-ink w-full mt-5" onClick={finish} disabled={saving}>Finish workout<Icon name="check" size={20} strokeWidth={3} /></button>}
               {exs.length > 0 && <button className="btn-line w-full mt-3" onClick={() => setSheet(false)}>Back to logging</button>}
               <button className="w-full text-center text-[15px] font-semibold text-alert mt-6" onClick={discard}>Delete workout</button>
             </div>

@@ -20,8 +20,8 @@ export function TrendChart({ data, main, secondary, unit = 'kg', height = 220 }:
       <ComposedChart data={data} margin={{ top: 8, right: 6, left: -8, bottom: 0 }}>
         <defs>
           <linearGradient id={`g-${main.key}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={VOLT} stopOpacity={0.95} />
-            <stop offset="100%" stopColor={VOLT} stopOpacity={0.25} />
+            <stop offset="0%" stopColor={VOLT} style={{ stopOpacity: 'var(--area-top)' }} />
+            <stop offset="100%" stopColor={VOLT} style={{ stopOpacity: 'var(--area-bottom)' }} />
           </linearGradient>
         </defs>
         <CartesianGrid stroke={RULE} vertical={false} />

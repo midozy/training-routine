@@ -7,7 +7,7 @@
   --card2: #ece7dc;    /* inset fills, tracks */
   --ink: #111111;      /* primary text + primary button */
   --on-ink: #f4f1ea;   /* text on ink */
-  --sub: #736d62;      /* secondary text */
+  --sub: #625c52;      /* secondary text */
   --rule: #e2dccf;     /* hairlines */
   --volt: #d7ff3a;     /* accent (always used with dark text) */
   --alert: #d93a2b;
@@ -15,19 +15,20 @@
   --on-inv: #f4f1ea;
   --tabbar: rgb(255 255 255 / 0.82);
   --shadow: 0 1px 2px rgb(0 0 0 / .04), 0 4px 16px rgb(0 0 0 / .04);
+  --area-top: .85; --area-bottom: .08;  /* chart fill fade */
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0d0d0b; --card: #1a1a17; --card2: #25251f; --ink: #f2efe8; --on-ink: #111111;
     --sub: #9b968a; --rule: #2d2c27; --alert: #ff5b4c; --inv: #000000; --on-inv: #f2efe8;
-    --tabbar: rgb(22 22 19 / 0.82); --shadow: none; color-scheme: dark;
+    --tabbar: rgb(22 22 19 / 0.82); --shadow: none; --area-top: .32; --area-bottom: 0; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0d0d0b; --card: #1a1a17; --card2: #25251f; --ink: #f2efe8; --on-ink: #111111;
   --sub: #9b968a; --rule: #2d2c27; --alert: #ff5b4c; --inv: #000000; --on-inv: #f2efe8;
-  --tabbar: rgb(22 22 19 / 0.82); --shadow: none; color-scheme: dark;
+  --tabbar: rgb(22 22 19 / 0.82); --shadow: none; --area-top: .32; --area-bottom: 0; color-scheme: dark;
 }
 
 @theme inline {

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { PageHead, SectionLabel } from '@/components/Shell';
 import ExerciseGuide from '@/components/ExerciseGuide';
+import Icon from '@/components/Icon';
 import { usePrefs } from '@/lib/prefs';
 import { supabase, type Plan, type PlanDay, type PlanExercise } from '@/lib/supabase';
 
@@ -92,17 +93,17 @@ export default function PlanPage() {
     <div>
       <PageHead eyebrow="Programme" title="Plan" right={<button className="text-[16px] font-semibold text-ink" onClick={newPlan}>+ New</button>} />
 
-      <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1">
+      <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1 snap-x snap-mandatory scroll-px-4">
         {plans.map((p) => {
           const active = settings.active_plan_id === p.id;
           return (
             <button key={p.id} onClick={() => view(p.id)}
-              className={`shrink-0 min-w-[46%] text-left rounded-2xl p-4 transition ${viewId === p.id ? 'bg-inv text-on-inv' : 'card'}`}>
+              className={`shrink-0 snap-start text-left rounded-2xl p-4 transition ${plans.length > 1 ? 'w-[72%] max-w-[300px]' : 'w-full'} ${viewId === p.id ? 'bg-inv text-on-inv' : 'card'}`}>
               <div className="flex items-center gap-2">
                 <span className="display text-[26px] leading-none truncate">{p.name}</span>
-                {active && <span className="shrink-0 w-5 h-5 rounded-full bg-volt text-[#111] grid place-items-center text-[12px] font-bold">✓</span>}
+                {active && <span className="shrink-0 w-5 h-5 rounded-full bg-volt text-[#111] grid place-items-center"><Icon name="check" size={12} strokeWidth={3.4} /></span>}
               </div>
-              <div className={`text-[12px] mt-1.5 ${viewId === p.id ? 'opacity-70' : 'text-sub'}`}>{p.description ?? (active ? 'Active plan' : '')}</div>
+              <div className={`text-[12px] mt-1.5 line-clamp-2 ${viewId === p.id ? 'opacity-70' : 'text-sub'}`}>{p.description ?? (active ? 'Active plan' : '')}</div>
             </button>
           );
         })}
@@ -112,7 +113,7 @@ export default function PlanPage() {
         <>
           <div className="flex flex-wrap gap-2 mt-3">
             {!isActive && <button className="pill !bg-volt !text-[#111]" onClick={activate}>Use this plan</button>}
-            {mine && <Link className="pill" href={`/plan/edit?id=${plan.id}`}>✎ Edit</Link>}
+            {mine && <Link className="pill" href={`/plan/edit?id=${plan.id}`}><Icon name="edit" size={13} />Edit</Link>}
             <button className="pill" onClick={duplicate} disabled={busy}>Duplicate</button>
             {mine && plan.source_plan_id && <button className="pill" onClick={reset} disabled={busy}>Reset to original</button>}
             {mine && !isActive && <button className="pill !text-alert" onClick={remove}>Delete</button>}
@@ -139,7 +140,7 @@ export default function PlanPage() {
                       {list.map((e, i) => (
                         <button key={e.id} onClick={() => setGuide(e)} className="w-full flex items-baseline gap-3 py-2 text-left border-t border-rule first:border-t-0">
                           <span className="num text-sub w-5">{i + 1}</span>
-                          <span className="flex-1 text-[15px]">{e.label} <span className="text-sub text-xs">ⓘ</span></span>
+                          <span className="flex-1 text-[15px]">{e.label} <Icon name="info" size={14} className="inline text-sub ml-1 -mt-0.5" /></span>
                           <span className="num">{e.target_reps.join('·')}</span>
                         </button>
                       ))}

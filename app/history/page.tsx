@@ -9,7 +9,7 @@ import { supabase, fetchAll, type Session } from '@/lib/supabase';
 type Row = Session & { sets: number; volume: number; minutes: number | null };
 
 export default function History() {
-  const { w, units } = usePrefs();
+  const { w, units, settings } = usePrefs();
   const [rows, setRows] = useState<Row[] | null>(null);
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export default function History() {
     })();
   }, []);
 
-  if (!rows) return <div className="eyebrow pt-10 px-1">Loading</div>;
+  if (!rows || !settings) return <div className="eyebrow pt-10 px-1">Loading</div>;
 
   const byMonth = rows.reduce<Record<string, Row[]>>((m, r) => {
     const k = new Date(r.started_at).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
@@ -35,7 +35,7 @@ export default function History() {
 
   return (
     <div>
-      <PageHead eyebrow={`${rows.filter((r) => r.finished_at).length} sessions logged`} title="Log" />
+      <PageHead eyebrow={`${rows.filter((r) => r.finished_at).length} sessions logged`} title="History" />
       {rows.length === 0 && <div className="card p-6 text-sub">No workouts yet. Start one from Today.</div>}
       {Object.entries(byMonth).map(([month, list]) => (
         <section key={month} className="mb-6">

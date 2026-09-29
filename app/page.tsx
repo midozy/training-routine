@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import ExerciseGuide from '@/components/ExerciseGuide';
+import Icon from '@/components/Icon';
 import { usePrefs } from '@/lib/prefs';
 import { supabase, fmtDate, type Plan, type PlanDay, type PlanExercise, type Session } from '@/lib/supabase';
 
@@ -121,7 +122,7 @@ export default function Today() {
                     <span className="num text-sub text-lg w-6">{pad(i + 1)}</span>
                     <span className="flex-1 text-[16px]">{e.label}</span>
                     <span className="num text-lg">{e.target_reps.length}×{[...new Set(e.target_reps)].join('/')}</span>
-                    <span className="text-sub text-sm">ⓘ</span>
+                    <Icon name="info" size={17} className="text-sub shrink-0" />
                   </button>
                 </li>
               ))}

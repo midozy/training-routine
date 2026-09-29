@@ -150,7 +150,7 @@ export default function ProfilePage() {
         </button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPhoto} />
         <div className="min-w-0">
-          <div className="display text-[34px] truncate">{profile.display_name || 'Add your name'}</div>
+          <div className={`display text-[34px] truncate ${profile.display_name ? '' : 'text-sub'}`}>{profile.display_name || 'Add your name'}</div>
           <div className="flex flex-wrap gap-1.5 mt-2">
             {goalLabel && <span className="pill !bg-volt !text-[#111]">{goalLabel}</span>}
             {age != null && <span className="pill">{age} yrs</span>}

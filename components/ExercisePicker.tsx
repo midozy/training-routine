@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { guideFor } from '@/components/ExerciseGuide';
+import Icon from '@/components/Icon';
 import { supabase, type Exercise } from '@/lib/supabase';
 
 const MUSCLES = ['Chest', 'Back', 'Shoulders', 'Rear Delts', 'Traps', 'Biceps', 'Triceps', 'Quads', 'Hamstrings', 'Glutes', 'Calves', 'Abs', 'Other'];
@@ -72,7 +73,7 @@ export default function ExercisePicker({ title = 'Choose exercise', highlightMus
                       {guideFor(e.name) ? <img src={guideFor(e.name)!.gif} alt="" className="w-11 h-11 rounded-lg object-cover bg-card2" /> /* eslint-disable-line @next/next/no-img-element */
                         : <span className="w-11 h-11 rounded-lg bg-card2 grid place-items-center text-sub text-xs">{e.owner_id ? 'MINE' : '—'}</span>}
                       <span className="flex-1">{e.name}</span>
-                      <span className="text-sub">＋</span>
+                      <Icon name="plus" size={18} className="text-sub" />
                     </button>
                   ))}
                 </div>

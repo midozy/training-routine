@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import guide from '@/lib/guide.json';
 import Icon from '@/components/Icon';
 
-type Entry = { gif: string; aka: string | null; setup: string; perform: string; avoid: string; primary: string[]; secondary: string[]; equipment: string };
+type Entry = { gif: string | null; aka: string | null; setup: string; perform: string; avoid: string; primary: string[]; secondary: string[]; equipment: string };
 const GUIDE = guide as Record<string, Entry>;
 
 /** Resolve an exercise name to its guide entry. */
@@ -40,11 +40,13 @@ export default function ExerciseGuide({ name, cue, onClose }: { name: string; cu
 
         {g ? (
           <>
+            {g.gif && <>
             <div className="mt-4 mx-4 rounded-2xl overflow-hidden bg-white">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={g.gif} alt={`${name} — start and end position`} className="w-full h-auto max-h-[44vh] object-contain block mx-auto" />
             </div>
             <div className="px-5 mt-1.5 text-[12px] text-sub">Start <Icon name="arrows-h" size={12} className="inline -mt-0.5 mx-0.5" /> end position</div>
+            </>}
 
             {cue && (
               <div className="mx-4 mt-4 rounded-2xl bg-inv text-on-inv p-4">

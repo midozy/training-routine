@@ -81,7 +81,7 @@ Web: push to `main` (Vercel redeploys). iOS: `npm run ios:sync`, bump **Build** 
 - **Tips** (`components/Tip.tsx`): "?" buttons beside est. 1RM, weekly totals, the muscle chart, Swap and "Use set 1 for all".
 - **Help page** (`app/help/page.tsx`): public `/help/`, linked from Profile and the sign-in screen. Use it as the store listing's support URL.
 - **Starter plan**: shared "Starter: Push / Pull / Legs" (`slug = starter-ppl`, `owner_id` null). New accounts start with it active; users Duplicate it to edit.
-- **Exercise library**: 132 shared exercises. Only the original 36 have instruction cards (`lib/guide.json`); the rest show "No instructions yet".
+- **Exercise library**: 132 shared exercises. All 132 have an instruction card in `lib/guide.json`. The original 36 have a photo (`gif`); the 96 added later are text-only (`gif: null`). Custom exercises show "No instructions yet".
 - **Week start**: Profile → Settings → Week starts on (`user_settings.week_start`; default Monday). Drives the week streak and the weekly charts.
 
 ## Backend

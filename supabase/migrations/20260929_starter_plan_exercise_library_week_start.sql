@@ -75,3 +75,6 @@ join (values
  (2,5,'Standing Calf Raise',array[15,15,15],90)
 ) as x(day_pos, pos, name, reps, rest) on x.day_pos = d.position
 join public.exercises e on e.name = x.name and e.owner_id is null;
+
+-- 4. Follow-up (applied separately the same day): Landmine Press belongs with Shoulders, matching its instruction card.
+update public.exercises set muscle = 'Shoulders' where name = 'Landmine Press' and owner_id is null;

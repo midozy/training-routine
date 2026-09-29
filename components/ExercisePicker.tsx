@@ -70,7 +70,7 @@ export default function ExercisePicker({ title = 'Choose exercise', highlightMus
                 <div className="group">
                   {list.map((e) => (
                     <button key={e.id} className="row" onClick={() => onPick(e)}>
-                      {guideFor(e.name) ? <img src={guideFor(e.name)!.gif} alt="" className="w-11 h-11 rounded-lg object-cover bg-card2" /> /* eslint-disable-line @next/next/no-img-element */
+                      {guideFor(e.name)?.gif ? <img src={guideFor(e.name)!.gif!} alt="" className="w-11 h-11 rounded-lg object-cover bg-card2" /> /* eslint-disable-line @next/next/no-img-element */
                         : <span className="w-11 h-11 rounded-lg bg-card2 grid place-items-center text-sub text-xs">{e.owner_id ? 'MINE' : '—'}</span>}
                       <span className="flex-1">{e.name}</span>
                       <Icon name="plus" size={18} className="text-sub" />

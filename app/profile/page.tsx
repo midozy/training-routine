@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { PageHead, SectionLabel } from '@/components/Shell';
 import { usePrefs } from '@/lib/prefs';
+import { weekStartOf, weekRangeLong, type WeekStart } from '@/lib/week';
 import { notifyStatus, requestNotify, isNative, restAlertsEnabled, setRestAlertsEnabled } from '@/lib/native';
 import { connectHealth, disconnectHealth, getHealthPrefs, healthAvailable, setWriteWorkouts, syncHealth, type HealthPrefs, type SyncResult } from '@/lib/health';
 import { supabase, fetchAll, epley, type Profile } from '@/lib/supabase';
@@ -14,9 +15,8 @@ const GOALS = [
 ] as const;
 const short = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 const yearsSince = (d: string) => Math.floor((Date.now() - new Date(d).getTime()) / (365.25 * 864e5));
-const weekKey = (d: Date) => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 1) % 7)); return x.getTime(); };
 
-type Stats = { workouts: number; month: number; streak: number; volumeKg: number; sets: number;
+type Stats = { workouts: number; month: number; doneAt: number[]; volumeKg: number; sets: number;
   prs: { name: string; e1rm: number; weight: number; reps: number; date: string }[];
   bwFirst: number | null; bwLast: number | null; bfLast: number | null };
 
@@ -64,11 +64,6 @@ export default function ProfilePage() {
     const done = sessions.filter((s) => s.finished_at);
     const now = new Date();
     const month = done.filter((s) => { const d = new Date(s.started_at); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).length;
-    // Streak = consecutive weeks (Sat–Fri) with at least one workout; this week counts if it already has one.
-    const weeks = new Set(done.map((s) => weekKey(new Date(s.started_at))));
-    let streak = 0; let k = weekKey(now);
-    if (!weeks.has(k)) k -= 7 * 864e5;
-    while (weeks.has(k)) { streak++; k -= 7 * 864e5; }
     const names = new Map(exs.map((e) => [e.id, e.name]));
     const best = new Map<number, Stats['prs'][number]>();
     let vol = 0;
@@ -79,7 +74,7 @@ export default function ProfilePage() {
       if (wkg > 0 && (!cur || e > cur.e1rm)) best.set(s.exercise_id, { name: names.get(s.exercise_id) ?? '—', e1rm: e, weight: wkg, reps: s.reps, date: s.logged_at });
     }
     setStats({
-      workouts: done.length, month, streak, volumeKg: vol, sets: sets.length,
+      workouts: done.length, month, doneAt: done.map((s) => new Date(s.started_at).getTime()), volumeKg: vol, sets: sets.length,
       prs: [...best.values()].sort((a, b) => b.e1rm - a.e1rm).slice(0, 6),
       bwFirst: bw?.length ? Number(bw[0].weight_kg) : null, bwLast: bw?.length ? Number(bw.at(-1)!.weight_kg) : null,
       bfLast: bfLatest,
@@ -134,6 +129,17 @@ export default function ProfilePage() {
     if (!stats?.bwFirst || !stats.bwLast || target == null || stats.bwFirst === target) return null;
     return Math.max(0, Math.min(100, ((stats.bwLast - stats.bwFirst) / (target - stats.bwFirst)) * 100));
   }, [stats, target]);
+  // Streak = consecutive weeks (per the user's week start) with at least one finished workout; this week counts if it already has one.
+  const streak = useMemo(() => {
+    if (!stats) return 0;
+    const ws = (settings?.week_start ?? 1) as WeekStart;
+    const weeks = new Set(stats.doneAt.map((t) => weekStartOf(new Date(t), ws).getTime()));
+    const back = (t: number) => { const d = new Date(t); d.setDate(d.getDate() - 7); return d.getTime(); }; // DST-safe
+    let n = 0; let k = weekStartOf(new Date(), ws).getTime();
+    if (!weeks.has(k)) k = back(k);
+    while (weeks.has(k)) { n++; k = back(k); }
+    return n;
+  }, [stats, settings?.week_start]);
 
   if (!profile || !settings) return <div className="eyebrow pt-10 px-1">Loading</div>;
 
@@ -164,7 +170,7 @@ export default function ProfilePage() {
       <SectionLabel>Training stats</SectionLabel>
       <div className="grid grid-cols-2 gap-2">
         <Tile label="Workouts" value={stats ? String(stats.workouts) : '—'} sub={stats ? `${stats.month} this month` : ''} />
-        <Tile label="Week streak" value={stats ? String(stats.streak) : '—'} sub="weeks in a row" hot={!!stats && stats.streak >= 4} />
+        <Tile label="Week streak" value={stats ? String(streak) : '—'} sub="weeks in a row" hot={!!stats && streak >= 4} />
         <Tile label="Volume lifted" value={stats ? compact(w(stats.volumeKg)) : '—'} sub={`${units} all-time`} />
         <Tile label="Sets logged" value={stats ? compact(stats.sets) : '—'} sub="all-time" />
       </div>
@@ -215,6 +221,8 @@ export default function ProfilePage() {
           <Segmented value={settings.theme} options={[['system', 'Auto'], ['light', 'Light'], ['dark', 'Dark']]} onChange={(v) => save({ theme: v as 'system' | 'light' | 'dark' })} /></div>
         <div className="row"><span className="flex-1">Default rest</span>
           <Segmented value={String(settings.default_rest_seconds)} options={[['60', '60s'], ['90', '90s'], ['120', '2m'], ['180', '3m']]} onChange={(v) => save({ default_rest_seconds: Number(v) })} /></div>
+        <div className="row"><span className="flex-1">Week starts on<span className="block text-[13px] text-sub">{weekRangeLong((settings.week_start ?? 1) as WeekStart)}</span></span>
+          <Segmented value={String(settings.week_start ?? 1)} options={[['1', 'Mon'], ['0', 'Sun'], ['6', 'Sat']]} onChange={(v) => save({ week_start: Number(v) as WeekStart })} /></div>
         <div className="row">
           <span className="flex-1">Rest timer on lock screen<span className="block text-[13px] text-sub">Live countdown and an alert when rest ends</span></span>
           {notif === 'web' && <span className="text-[13px] text-sub">iPhone app only</span>}
@@ -232,6 +240,8 @@ export default function ProfilePage() {
       <SectionLabel>Account</SectionLabel>
       <div className="group">
         <div className="row"><span className="flex-1">Email</span><span className="text-sub text-[15px] truncate max-w-[60%]">{email}</span></div>
+        <Link href="/help" className="row"><span className="flex-1">Help &amp; guide</span><span className="text-sub">›</span></Link>
+        <button className="row" onClick={() => window.dispatchEvent(new Event('heavy:tour'))}><span className="flex-1">Replay the tour</span><span className="text-sub">›</span></button>
         <Link href="/privacy" className="row"><span className="flex-1">Privacy policy</span><span className="text-sub">›</span></Link>
         <Link href="/terms" className="row"><span className="flex-1">Terms &amp; health disclaimer</span><span className="text-sub">›</span></Link>
         <button className="row" onClick={() => supabase.auth.signOut()}><span className="flex-1 text-ink font-medium">Sign out</span></button>

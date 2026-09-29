@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 
+const linkify = (t: string) => t.split(/([\w.+-]+@[\w-]+\.[\w.-]*\w)/).map((part, i) => (i % 2 ? <a key={i} href={`mailto:${part}`} className="underline">{part}</a> : part));
+
 export default function LegalPage({ title, updated, sections }: { title: string; updated: string; sections: { h: string; p: string[] }[] }) {
   const router = useRouter();
   return (
@@ -13,7 +15,7 @@ export default function LegalPage({ title, updated, sections }: { title: string;
         {sections.map((s) => (
           <section key={s.h} className="py-5 border-b border-rule">
             <h2 className="font-display font-bold uppercase text-xl tracking-wide">{s.h}</h2>
-            {s.p.map((t, i) => <p key={i} className="mt-2 text-[15px] leading-relaxed">{t}</p>)}
+            {s.p.map((t, i) => <p key={i} className="mt-2 text-[15px] leading-relaxed">{linkify(t)}</p>)}
           </section>
         ))}
       </div>

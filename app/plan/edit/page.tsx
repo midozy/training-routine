@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ExercisePicker from '@/components/ExercisePicker';
 import Icon from '@/components/Icon';
+import Tip from '@/components/Tip';
 import { supabase, type Exercise, type Plan, type PlanDay, type PlanExercise } from '@/lib/supabase';
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -210,7 +211,10 @@ function ExerciseEditor({ ex, onSave, onClose, onChangeExercise, onDelete }: {
                 </label>
               ))}
             </div>
-            <button className="text-[14px] font-semibold text-ink mt-2 px-1" onClick={() => setReps((all) => all.map(() => all[0]))}>Use set 1 for all</button>
+            <div className="flex items-center gap-2 mt-2 px-1">
+              <button className="text-[14px] font-semibold text-ink" onClick={() => setReps((all) => all.map(() => all[0]))}>Use set 1 for all</button>
+              <Tip id="set1" title="Use set 1 for all">Copies the reps from set 1 to every other set of this exercise.</Tip>
+            </div>
           </div>
 
           <div>

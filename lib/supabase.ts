@@ -16,7 +16,7 @@ export type PlanExercise = {
   id: number; plan_day_id: number; position: number; exercise_id: number; label: string;
   target_reps: number[]; unit: 'reps' | 'steps'; cue: string | null; rest_seconds: number;
 };
-export type Settings = { user_id: string; active_plan_id: number | null; next_position: number; default_rest_seconds: number; units: 'kg' | 'lb'; theme: 'system' | 'light' | 'dark' };
+export type Settings = { user_id: string; active_plan_id: number | null; next_position: number; default_rest_seconds: number; units: 'kg' | 'lb'; theme: 'system' | 'light' | 'dark'; week_start: 0 | 1 | 6 };
 export type Profile = { user_id: string; display_name: string | null; avatar_path: string | null; height_cm: number | null; birth_date: string | null; training_since: string | null; goal: 'bulk' | 'cut' | 'maintain' | 'recomp' | null; target_weight_kg: number | null; target_body_fat_pct: number | null };
 export type Exercise = { id: number; name: string; muscle: string; owner_id: string | null };
 export type Session = { id: number; plan_day_id: number | null; day_name: string; started_at: string; finished_at: string | null; notes: string | null;
@@ -38,11 +38,11 @@ export async function fetchAll<T>(build: (from: number, to: number) => PromiseLi
   return out;
 }
 
-/** Load settings, creating a default row (Split 2 active) on first use. */
+/** Load settings, creating a default row (starter plan active) on first use. */
 export async function getSettings(): Promise<Settings> {
   const { data } = await supabase.from('user_settings').select('*').maybeSingle();
   if (data) return data as Settings;
-  const { data: plan } = await supabase.from('plans').select('id').eq('slug', 'split-2').maybeSingle();
+  const { data: plan } = await supabase.from('plans').select('id').eq('slug', 'starter-ppl').is('owner_id', null).maybeSingle();
   const { data: created, error } = await supabase
     .from('user_settings')
     .insert({ active_plan_id: plan?.id ?? null, next_position: 0 })

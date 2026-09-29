@@ -46,7 +46,7 @@ export default function Login() {
           {mode === 'in' ? 'First time? Create your account' : 'Have an account? Sign in'}
         </button>
         <p className="text-xs text-sub text-center pt-1">
-          By continuing you agree to the <a href="/terms/" className="underline">Terms &amp; health disclaimer</a> and <a href="/privacy/" className="underline">Privacy policy</a>.
+          By continuing you agree to the <a href="/terms/" className="underline">Terms &amp; health disclaimer</a> and <a href="/privacy/" className="underline">Privacy policy</a>. <a href="/help/" className="underline">Need help?</a>
         </p>
       </form>
     </div>

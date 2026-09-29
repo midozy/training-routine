@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ExerciseGuide from '@/components/ExerciseGuide';
 import ExercisePicker from '@/components/ExercisePicker';
 import Icon from '@/components/Icon';
+import Tip from '@/components/Tip';
 import { usePrefs } from '@/lib/prefs';
 import { tap, success, keepScreenOn, scheduleRestAlert, cancelRestAlert } from '@/lib/native';
 import { saveSessionToHealth } from '@/lib/health';
@@ -304,6 +305,7 @@ export default function Workout() {
               <button className="pill" onClick={() => setGuideOpen(true)}><Icon name="play" size={12} />How to</button>
               <button className="pill" onClick={() => (done && !swapped ? alert('Undo the logged sets on this exercise before swapping it.') : setSwapping(true))}><Icon name="swap" size={14} />Swap</button>
               {swapped && <button className="pill" onClick={() => swapTo(null)}><Icon name="undo" size={14} />Back to plan</button>}
+              <Tip id="swap" title="Swap">Replaces this exercise for today only. Your plan does not change.</Tip>
             </div>
             {x.cue && !swapped && <div className="mt-3 rounded-xl bg-card2 px-3 py-2 text-[15px] leading-snug flex gap-2 items-start"><Icon name="bolt" size={16} className="mt-[3px] shrink-0" /><span>{x.cue}</span></div>}
             {pv?.length ? (
@@ -361,6 +363,7 @@ export default function Workout() {
             <div className="h-2 rounded-full bg-on-inv/15 mt-6 overflow-hidden"><div className="h-full rounded-full bg-volt transition-all" style={{ width: `${Math.min(100, ((rest.total - left) / rest.total) * 100)}%` }} /></div>
             <div className="eyebrow !text-on-inv/50 mt-8">Up next</div>
             <div className="text-xl mt-2 leading-snug">{rest.next}</div>
+            <p className="text-[13px] text-on-inv/50 mt-6">−15s and +15s change this rest only.</p>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <button className="btn !bg-on-inv/10 !text-on-inv" onClick={(e) => { e.stopPropagation(); setRest((t) => t && { ...t, endAt: Math.max(Date.now(), t.endAt - 15000), total: Math.max(1, t.total - 15) }); }}>−15s</button>

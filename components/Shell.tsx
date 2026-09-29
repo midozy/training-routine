@@ -7,9 +7,10 @@ import type { Session as AuthSession } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { PrefsProvider } from '@/lib/prefs';
 import { syncHealth } from '@/lib/health';
+import Tour from '@/components/Tour';
 
 // Reachable without signing in (App Store requires the privacy policy to be public).
-const PUBLIC = ['/login', '/privacy', '/terms'];
+const PUBLIC = ['/login', '/privacy', '/terms', '/help'];
 
 const ICONS: Record<string, React.ReactNode> = {
   today: <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z" />,
@@ -78,6 +79,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
+      <Tour userId={session.user.id} />
     </PrefsProvider>
   );
 }

@@ -5,13 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { TrendChart, Columns } from '@/components/Charts';
 import { PageHead } from '@/components/Shell';
 import Icon from '@/components/Icon';
+import Tip from '@/components/Tip';
+import { weekStartOf, weekRangeLong, type WeekStart } from '@/lib/week';
 import { usePrefs } from '@/lib/prefs';
 import { supabase, fetchAll, epley } from '@/lib/supabase';
 
 type Log = { session_id: number; exercise_id: number; weight_kg: number; reps: number; logged_at: string };
 type Ex = { id: number; name: string; muscle: string };
-const MUSCLES = ['Chest', 'Back', 'Shoulders', 'Rear Delts', 'Traps', 'Biceps', 'Triceps', 'Quads', 'Hamstrings', 'Calves'];
-const weekStart = (d: Date) => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 1) % 7)); return x; }; // Saturday
+const MUSCLES = ['Chest', 'Back', 'Shoulders', 'Rear Delts', 'Traps', 'Biceps', 'Triceps', 'Quads', 'Hamstrings', 'Glutes', 'Calves', 'Abs'];
 const short = (d: Date | string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
 export default function ProgressPage() {
@@ -39,7 +40,8 @@ function Progress() {
 
 /* ================= Strength ================= */
 function Strength() {
-  const { w, units } = usePrefs();
+  const { w, units, settings } = usePrefs();
+  const ws = (settings?.week_start ?? 1) as WeekStart;
   const [logs, setLogs] = useState<Log[] | null>(null);
   const [exs, setExs] = useState<Ex[]>([]);
   const [sel, setSel] = useState<number | null>(null);
@@ -74,11 +76,11 @@ function Strength() {
   const weekly = useMemo(() => {
     if (!logs) return { cols: [], muscles: [] as { m: string; now: number; avg: number }[] };
     const muscleOf = new Map(exs.map((e) => [e.id, e.muscle]));
-    const w0 = weekStart(new Date());
+    const w0 = weekStartOf(new Date(), ws);
     const weeks = Array.from({ length: 8 }, (_, i) => { const d = new Date(w0); d.setDate(d.getDate() - 7 * (7 - i)); return d.getTime(); });
     const total: Record<number, number> = {}; const per: Record<string, Record<number, number>> = {};
     for (const l of logs) {
-      const t = weekStart(new Date(l.logged_at)).getTime();
+      const t = weekStartOf(new Date(l.logged_at), ws).getTime();
       if (!weeks.includes(t)) continue;
       total[t] = (total[t] ?? 0) + 1;
       const m = muscleOf.get(l.exercise_id) ?? 'Other';
@@ -89,7 +91,7 @@ function Strength() {
       cols: weeks.map((t) => ({ label: short(new Date(t)), sets: total[t] ?? 0 })),
       muscles: MUSCLES.map((m) => ({ m, now: per[m]?.[now] ?? 0, avg: weeks.slice(0, 7).reduce((a, t) => a + (per[m]?.[t] ?? 0), 0) / 7 })).filter((x) => x.now || x.avg),
     };
-  }, [logs, exs]);
+  }, [logs, exs, ws]);
 
   if (!logs) return <div className="eyebrow px-1">Loading</div>;
   const best = series.reduce((a, s) => Math.max(a, s.e1rm), 0);
@@ -114,9 +116,9 @@ function Strength() {
       </div>
 
       <section className="card p-4 mt-3">
-        <div className="eyebrow mb-3">Strength per session · est. 1RM <span className="normal-case tracking-normal">(dashed = top set)</span></div>
+        <div className="eyebrow mb-3 flex items-center gap-2">Strength per session · est. 1RM <Tip id="e1rm" title="Est. 1RM">Your estimated one-rep max: the heaviest single rep you could lift, worked out from the weight and reps of each set. It lets you compare sets with different rep counts. The dashed line is your top set.</Tip></div>
         {series.length ? <TrendChart data={series} main={{ key: 'e1rm', name: 'Est. 1RM' }} secondary={{ key: 'top', name: 'Top set' }} unit={units} />
-          : <p className="py-10 text-center text-sub">No sets logged for this exercise yet.</p>}
+          : <p className="py-10 text-center text-sub">{logs.length === 0 ? 'Log your first workout to see strength trends.' : 'No sets logged for this exercise yet.'}</p>}
       </section>
 
       {series.length > 0 && (
@@ -127,12 +129,12 @@ function Strength() {
       )}
 
       <section className="card p-4 mt-3">
-        <div className="eyebrow mb-3">Total sets per week · weeks start Saturday</div>
+        <div className="eyebrow mb-3 flex items-center gap-2">Total sets per week <Tip id="weeks" title="Weeks">Weeks run {weekRangeLong(ws)}. You can change the first day of the week in Profile › Settings.</Tip></div>
         <Columns data={weekly.cols} dataKey="sets" unit=" sets" />
       </section>
 
       <section className="card p-4 mt-3">
-        <div className="flex justify-between eyebrow mb-4"><span>This week by muscle</span><span className="normal-case tracking-normal">bar = now · tick = 7-wk avg</span></div>
+        <div className="flex justify-between eyebrow mb-4"><span className="flex items-center gap-2">This week by muscle <Tip id="muscle-chart" title="This week by muscle">The bar is how many sets you have done this week. The tick is your average over the previous 7 weeks.</Tip></span><span className="normal-case tracking-normal">bar = now · tick = 7-wk avg</span></div>
         {weekly.muscles.length === 0 && <p className="text-sub">Log a workout to see weekly volume.</p>}
         <div className="space-y-3">
           {weekly.muscles.map(({ m, now, avg }) => (
@@ -226,6 +228,7 @@ function Body() {
           {delta != null && <span className={`ml-auto num text-xl px-2.5 py-0.5 rounded-lg ${delta <= 0 ? 'bg-volt text-[#111]' : 'bg-card2'}`}>{delta >= 0 ? '+' : ''}{delta.toFixed(1)} <span className="text-xs font-sans">/wk</span></span>}
         </div>
         <div className="text-[14px] text-sub mt-3">7-day average · <span className="text-ink font-semibold">{avg7 ? `${fw(avg7)} ${units}` : '—'}</span></div>
+        {bw.length === 0 && <p className="text-[14px] text-sub mt-3">Log your bodyweight below to see your trend.</p>}
         <form onSubmit={saveWeight} className="mt-4 grid grid-cols-[1fr_1fr_auto] gap-2">
           <input className="field" type="date" value={date} max={today()} onChange={(e) => setDate(e.target.value)} aria-label="Date" />
           <input className="field num text-xl" inputMode="decimal" placeholder={units} value={val} onChange={(e) => setVal(e.target.value)} aria-label={`Weight in ${units}`} />

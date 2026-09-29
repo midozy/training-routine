@@ -53,12 +53,20 @@ export default function Today() {
     })();
   }, [settings?.active_plan_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  async function startWithTemplate() {
+    setBusy(true);
+    const { data } = await supabase.from('plans').select('id').eq('slug', 'starter-ppl').is('owner_id', null).maybeSingle();
+    if (data) await save({ active_plan_id: data.id, next_position: 0 });
+    setBusy(false);
+  }
+
   if (!settings || plan === undefined) return <div className="eyebrow pt-10 px-1">Loading</div>;
   if (!plan || days.length === 0) return (
     <div className="pt-10 px-1">
       <h1 className="display text-[64px]">No plan<br /><span className="hl">yet.</span></h1>
-      <p className="mt-5 text-[17px] text-sub max-w-xs">Choose or create a training plan to get started.</p>
-      <Link href="/plan" className="btn-ink w-full mt-8">Go to Plan</Link>
+      <p className="mt-5 text-[17px] text-sub max-w-xs">Start with the Push / Pull / Legs starter, or build your own.</p>
+      <button className="btn-volt w-full mt-8" onClick={startWithTemplate} disabled={busy}>Use starter plan</button>
+      <Link href="/plan" className="btn-line w-full mt-3">Build my own</Link>
     </div>
   );
 

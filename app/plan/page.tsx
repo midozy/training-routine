@@ -119,6 +119,7 @@ export default function PlanPage() {
             {mine && !isActive && <button className="pill !text-alert" onClick={remove}>Delete</button>}
           </div>
 
+          {!mine && <p className="text-[13px] text-sub mt-3 px-1">Starter plans are read-only. Tap Duplicate to make your own copy, then Edit it.</p>}
           <SectionLabel>{days.filter((d) => !d.is_rest).length} training days · {days.filter((d) => d.is_rest).length} rest</SectionLabel>
           <div className="group">
             {days.map((d) => {

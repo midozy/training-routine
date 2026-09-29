@@ -36,7 +36,7 @@ export default function History() {
   return (
     <div>
       <PageHead eyebrow={`${rows.filter((r) => r.finished_at).length} sessions logged`} title="History" />
-      {rows.length === 0 && <div className="card p-6 text-sub">No workouts yet. Start one from Today.</div>}
+      {rows.length === 0 && <div className="card p-6 text-sub">Your workouts appear here after you finish your first one.</div>}
       {Object.entries(byMonth).map(([month, list]) => (
         <section key={month} className="mb-6">
           <div className="flex items-baseline justify-between px-4 mb-2">

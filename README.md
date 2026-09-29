@@ -76,6 +76,14 @@ Web: push to `main` (Vercel redeploys). iOS: `npm run ios:sync`, bump **Build** 
 
 ---
 
+## In-app guide
+- **First-run tour** (`components/Tour.tsx`): 4 skippable cards, shown once per account per device; replay from Profile → Replay the tour.
+- **Tips** (`components/Tip.tsx`): "?" buttons beside est. 1RM, weekly totals, the muscle chart, Swap and "Use set 1 for all".
+- **Help page** (`app/help/page.tsx`): public `/help/`, linked from Profile and the sign-in screen. Use it as the store listing's support URL.
+- **Starter plan**: shared "Starter: Push / Pull / Legs" (`slug = starter-ppl`, `owner_id` null). New accounts start with it active; users Duplicate it to edit.
+- **Exercise library**: 132 shared exercises. Only the original 36 have instruction cards (`lib/guide.json`); the rest show "No instructions yet".
+- **Week start**: Profile → Settings → Week starts on (`user_settings.week_start`; default Monday). Drives the week streak and the weekly charts.
+
 ## Backend
 Supabase project `training-routine` (ref `danzdvismbezkymgstfu`, eu-central-1).
 - Schema: `supabase/schema.sql` (initial). Later migrations were applied through the Supabase migrations history.

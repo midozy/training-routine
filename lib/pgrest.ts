@@ -48,7 +48,7 @@ function cmpToStr(a: unknown, b: string): number {
   return s < b ? -1 : s > b ? 1 : 0;
 }
 
-function cmpVals(a: unknown, b: unknown): number {
+export function cmpVals(a: unknown, b: unknown): number {
   if (typeof a === 'number' && typeof b === 'number') return a - b;
   if (typeof a === 'boolean' && typeof b === 'boolean') return Number(a) - Number(b);
   if (isTs(a) && isTs(b)) return Date.parse(a) - Date.parse(b);
@@ -85,7 +85,7 @@ function test(row: Row, f: Filter): boolean {
   return f.neg ? !r : r;
 }
 
-function project(row: Row, select: string | null): Row {
+export function project(row: Row, select: string | null): Row {
   if (!select || select === '*' || /[():]/.test(select)) return row;
   const cols = select.split(',').map((s) => s.trim()).filter(Boolean);
   if (cols.includes('*')) return row;
@@ -96,17 +96,23 @@ function project(row: Row, select: string | null): Row {
 
 const unsupported = (why: string): Result => ({ status: 400, body: { code: 'OFFLINE_UNSUPPORTED', message: `This query can't be answered offline (${why}).` } });
 
-export function runQuery(rows: Row[], params: URLSearchParams, accept: string | null): Result {
+/** Rows matching every filter in the query string, or null if a filter isn't supported offline. */
+export function applyFilters(rows: Row[], params: URLSearchParams): Row[] | null {
   const filters: Filter[] = [];
   for (const [k, v] of params) {
     if (RESERVED.has(k)) continue;
-    if (k === 'or' || k === 'and') return unsupported(k);
+    if (k === 'or' || k === 'and') return null;
     const f = parseFilter(k, v);
-    if (!f) return unsupported(`${k}=${v}`);
+    if (!f) return null;
     filters.push(f);
   }
+  return rows.filter((r) => filters.every((f) => test(r, f)));
+}
 
-  let out = rows.filter((r) => filters.every((f) => test(r, f)));
+export function runQuery(rows: Row[], params: URLSearchParams, accept: string | null): Result {
+  const filtered = applyFilters(rows, params);
+  if (!filtered) return unsupported('filter');
+  let out = filtered;
 
   const order = params.get('order');
   if (order) {

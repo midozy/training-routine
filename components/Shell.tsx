@@ -70,7 +70,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   if (!session) return <div className="min-h-dvh grid place-items-center eyebrow">Loading</div>;
 
   // Workout is a focused, full-screen flow with its own chrome.
-  if (path.startsWith('/workout')) return <PrefsProvider><main className="min-h-dvh">{children}</main></PrefsProvider>;
+  if (path.startsWith('/workout')) return <PrefsProvider><main className="min-h-dvh">{children}</main><OfflineBanner variant="top" /></PrefsProvider>;
 
   return (
     <PrefsProvider>

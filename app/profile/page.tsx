@@ -10,6 +10,7 @@ import { notifyStatus, requestNotify, isNative, restAlertsEnabled, setRestAlerts
 import { connectHealth, disconnectHealth, getHealthPrefs, healthAvailable, setWriteWorkouts, syncHealth, type HealthPrefs, type SyncResult } from '@/lib/health';
 import { supabase, fetchAll, epley, type Profile } from '@/lib/supabase';
 import { currentUser } from '@/lib/session';
+import { getState } from '@/lib/offline';
 
 const GOALS = [
   { v: 'bulk', label: 'Bulk' }, { v: 'cut', label: 'Cut' }, { v: 'maintain', label: 'Maintain' }, { v: 'recomp', label: 'Recomp' },
@@ -245,7 +246,11 @@ export default function ProfilePage() {
         <button className="row" onClick={() => window.dispatchEvent(new Event('heavy:tour'))}><span className="flex-1">Replay the tour</span><span className="text-sub">›</span></button>
         <Link href="/privacy" className="row"><span className="flex-1">Privacy policy</span><span className="text-sub">›</span></Link>
         <Link href="/terms" className="row"><span className="flex-1">Terms &amp; health disclaimer</span><span className="text-sub">›</span></Link>
-        <button className="row" onClick={() => supabase.auth.signOut()}><span className="flex-1 text-ink font-medium">Sign out</span></button>
+        <button className="row" onClick={() => {
+          const n = getState().pending;
+          if (n > 0 && !confirm(`${n} change${n === 1 ? '' : 's'} on this phone haven't been saved to your account yet. Signing out now will lose ${n === 1 ? 'it' : 'them'}. Sign out anyway?`)) return;
+          supabase.auth.signOut();
+        }}><span className="flex-1 text-ink font-medium">Sign out</span></button>
       </div>
       <div className="group mt-3">
         <button className="row" onClick={deleteAccount}><span className="flex-1 text-alert font-medium">Delete account</span></button>

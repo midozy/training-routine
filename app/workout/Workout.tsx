@@ -9,6 +9,7 @@ import Tip from '@/components/Tip';
 import { usePrefs } from '@/lib/prefs';
 import { tap, success, keepScreenOn, scheduleRestAlert, cancelRestAlert } from '@/lib/native';
 import { saveSessionToHealth } from '@/lib/health';
+import { resolveSessionId } from '@/lib/outbox';
 import { supabase, epley, fmtDate, type PlanExercise, type Session, type SetLog } from '@/lib/supabase';
 
 type Row = { weight: string; reps: string; logged: boolean; touched: boolean }; // weight is in the user's display unit
@@ -33,7 +34,18 @@ function beep() {
 }
 
 export default function Workout() {
-  const sessionId = Number(useSearchParams().get('id'));
+  const urlId = Number(useSearchParams().get('id'));
+  // A workout started offline has a temporary (negative) id until it syncs; sidRef/sessionId always hold the current real one.
+  const [sessionId, setSessionId] = useState(urlId);
+  const sidRef = useRef(urlId);
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent<{ from: number; to: number }>).detail;
+      if (d.from === sidRef.current) { sidRef.current = d.to; setSessionId(d.to); }
+    };
+    window.addEventListener('heavy:idmap', on);
+    return () => window.removeEventListener('heavy:idmap', on);
+  }, []);
   const router = useRouter();
   const { settings, w, fw, toKg, step: wStep, units } = usePrefs();
 
@@ -63,7 +75,7 @@ export default function Workout() {
   const loadHistory = useCallback(async (ids: number[]) => {
     if (!ids.length) return { p: {} as Prev, b: {} as Record<number, number> };
     const { data: hist } = await supabase.from('set_logs').select('session_id, exercise_id, set_number, weight_kg, reps, logged_at')
-      .in('exercise_id', ids).neq('session_id', sessionId).order('logged_at', { ascending: false }).limit(1000);
+      .in('exercise_id', ids).neq('session_id', sidRef.current).order('logged_at', { ascending: false }).limit(1000);
     const p: Prev = {}; const latest: Record<number, number> = {}; const b: Record<number, number> = {};
     for (const h of hist ?? []) {
       b[h.exercise_id] = Math.max(b[h.exercise_id] ?? 0, epley(Number(h.weight_kg), h.reps));
@@ -73,7 +85,7 @@ export default function Workout() {
     }
     setPrev((o) => ({ ...o, ...p })); setBest((o) => ({ ...o, ...b }));
     return { p, b };
-  }, [sessionId]);
+  }, []);
 
   const freshRows = useCallback((x: PlanExercise, exId: number, p: Prev, logged: SetLog[]): Row[] => {
     const n = Math.max(x.target_reps.length, ...logged.map((l) => l.set_number));
@@ -88,13 +100,15 @@ export default function Workout() {
   useEffect(() => {
     if (!settings) return;
     (async () => {
-      const { data: s } = await supabase.from('workout_sessions').select('*').eq('id', sessionId).maybeSingle();
+      const sid = await resolveSessionId(urlId); // the real id, if this workout has synced since the link was made
+      sidRef.current = sid; setSessionId(sid);
+      const { data: s } = await supabase.from('workout_sessions').select('*').eq('id', sid).maybeSingle();
       if (!s) return router.replace('/');
       setSession(s); setNotes(s.notes ?? '');
       const [{ data: logs }, { data: exRows }, { data: sw }] = await Promise.all([
-        supabase.from('set_logs').select('*').eq('session_id', sessionId).order('set_number'),
+        supabase.from('set_logs').select('*').eq('session_id', sid).order('set_number'),
         supabase.from('exercises').select('id, name, muscle'),
-        supabase.from('session_swaps').select('plan_exercise_id, exercise_id').eq('session_id', sessionId),
+        supabase.from('session_swaps').select('plan_exercise_id, exercise_id').eq('session_id', sid),
       ]);
       const libMap: Lib = Object.fromEntries((exRows ?? []).map((x) => [x.id, { name: x.name, muscle: x.muscle }]));
       setLib(libMap);
@@ -126,7 +140,7 @@ export default function Workout() {
       if (!list.length) setSheet(true);
       setReady(true);
     })();
-  }, [sessionId, router, settings?.user_id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [urlId, router, settings?.user_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stats = useMemo(() => {
     let sets = 0, vol = 0, total = 0;

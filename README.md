@@ -84,13 +84,14 @@ Web: push to `main` (Vercel redeploys). iOS: `npm run ios:sync`, bump **Build** 
 - **Exercise library**: 132 shared exercises. All 132 have an instruction card in `lib/guide.json`. The original 36 have a photo (`gif`); the 96 added later are text-only (`gif: null`). Custom exercises show "No instructions yet".
 - **Week start**: Profile → Settings → Week starts on (`user_settings.week_start`; default Monday). Drives the week streak and the weekly charts.
 
-## Offline (Phase 1 of 4: read-only)
-- `lib/offline.ts`: the Supabase client's `fetch` is wrapped. When a request fails (no signal / 10 s timeout) reads are answered from a copy of your data saved on the phone (IndexedDB); the offline banner shows while this is happening.
-- `lib/pgrest.ts`: the tiny PostgREST query engine used for that (only what the screens use; anything else fails loudly).
-- `lib/sync.ts`: downloads all 12 tables on open, on returning to the app, on reconnect, and refreshes a table after you change it. Different account or sign-out wipes the copy.
-- `lib/session.ts`: keeps you signed in offline (supabase-js reports no session when the token expired and can't refresh).
-- Not yet: saving changes offline (Phase 2 needs a `client_id` column for offline-created rows), then the rest of the writes (Phase 3), then hardening (Phase 4).
-- Tests: `node --experimental-strip-types --no-warnings scripts/test-offline.mjs`.
+## Offline (Phases 1-2 of 4: read anything, log workouts)
+- **Reads** (`lib/offline.ts`, `lib/pgrest.ts`): the Supabase client's `fetch` is wrapped. If a request fails (no signal / 10 s timeout), or while changes are waiting to be sent, reads are answered from a copy of your data saved on the phone (IndexedDB, `lib/store.ts`).
+- **Writes to workouts, sets, swaps and settings** (`lib/pgwrite.ts`, `lib/outbox.ts`): applied on the phone first (instant, works with no signal), then queued in the outbox and sent in order in the background. Nothing leaves the queue until the server confirms it. A workout created offline gets a temporary negative id plus a `client_id` UUID (`workout_sessions.client_id`, unique) and is sent as an upsert on it, so a retry after a lost reply can never duplicate it. Times you did things are frozen into the queued request, not stamped at sync time.
+- **Sync** (`lib/sync.ts`): downloads all 12 tables on open / return to the app / reconnect; never while changes are waiting (it would overwrite them). Different account or sign-out wipes the copy (the app warns first if changes are unsent).
+- **If the server refuses a change** it stays queued, the queue pauses, and the banner offers Retry / Discard. A temporary server error (5xx/429) is just retried.
+- **Sign-in offline** (`lib/session.ts`): supabase-js reports no session when the token expired and can't refresh; we fall back to the saved login.
+- **Still online-only:** plans (create/edit/duplicate), custom exercises, profile, body weight, measurements, Apple Health import, account actions. (Phase 3: these; Phase 4: hardening.)
+- Tests: `node --experimental-strip-types --no-warnings scripts/test-offline.mjs` (fake cloud, real supabase-js client).
 
 ## Backend
 Supabase project `training-routine` (ref `danzdvismbezkymgstfu`, eu-central-1).

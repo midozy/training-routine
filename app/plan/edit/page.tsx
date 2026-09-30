@@ -6,6 +6,7 @@ import ExercisePicker from '@/components/ExercisePicker';
 import Icon from '@/components/Icon';
 import Tip from '@/components/Tip';
 import { supabase, type Exercise, type Plan, type PlanDay, type PlanExercise } from '@/lib/supabase';
+import { resolveId } from '@/lib/outbox';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -22,7 +23,18 @@ const move = <T,>(arr: T[], i: number, d: number) => { const a = [...arr]; const
 
 function Editor() {
   const router = useRouter();
-  const planId = Number(useSearchParams().get('id'));
+  const urlPlanId = Number(useSearchParams().get('id'));
+  // A plan created offline has a temporary (negative) id until it syncs; planId always holds the current real one.
+  const [planId, setPlanId] = useState(urlPlanId);
+  useEffect(() => { resolveId('plans', urlPlanId).then(setPlanId); }, [urlPlanId]);
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent<{ table: string; from: number; to: number }>).detail;
+      if (d.table === 'plans') setPlanId((cur) => (cur === d.from ? d.to : cur));
+    };
+    window.addEventListener('heavy:idmap', on);
+    return () => window.removeEventListener('heavy:idmap', on);
+  }, []);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [days, setDays] = useState<PlanDay[]>([]);
   const [exs, setExs] = useState<PlanExercise[]>([]);

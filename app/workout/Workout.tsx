@@ -40,8 +40,8 @@ export default function Workout() {
   const sidRef = useRef(urlId);
   useEffect(() => {
     const on = (e: Event) => {
-      const d = (e as CustomEvent<{ from: number; to: number }>).detail;
-      if (d.from === sidRef.current) { sidRef.current = d.to; setSessionId(d.to); }
+      const d = (e as CustomEvent<{ table: string; from: number; to: number }>).detail;
+      if (d.table === 'workout_sessions' && d.from === sidRef.current) { sidRef.current = d.to; setSessionId(d.to); }
     };
     window.addEventListener('heavy:idmap', on);
     return () => window.removeEventListener('heavy:idmap', on);

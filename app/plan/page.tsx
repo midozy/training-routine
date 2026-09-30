@@ -45,6 +45,14 @@ export default function PlanPage() {
   }, [settings?.active_plan_id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const plan = plans.find((p) => p.id === viewId);
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent<{ table: string; from: number; to: number }>).detail;
+      if (d.table === 'plans') setViewId((v) => (v === d.from ? d.to : v));
+    };
+    window.addEventListener('heavy:idmap', on);
+    return () => window.removeEventListener('heavy:idmap', on);
+  }, []);
   const isActive = plan && settings?.active_plan_id === plan.id;
   const mine = plan?.owner_id != null;
 

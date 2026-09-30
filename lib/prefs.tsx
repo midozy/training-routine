@@ -54,6 +54,11 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { reload(); }, [reload]);
   useEffect(() => { window.addEventListener('online', reload); return () => window.removeEventListener('online', reload); }, [reload]);
+  useEffect(() => { // a plan created offline gets its real id when it syncs: pick up the updated active plan
+    const on = (e: Event) => { if ((e as CustomEvent<{ table: string }>).detail.table === 'plans') reload(); };
+    window.addEventListener('heavy:idmap', on);
+    return () => window.removeEventListener('heavy:idmap', on);
+  }, [reload]);
 
   // Follow the phone's appearance live when set to "system".
   useEffect(() => {

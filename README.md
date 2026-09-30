@@ -84,7 +84,7 @@ Web: push to `main` (Vercel redeploys). iOS: `npm run ios:sync`, bump **Build** 
 - **Exercise library**: 132 shared exercises. All 132 have an instruction card in `lib/guide.json`. The original 36 have a photo (`gif`); the 96 added later are text-only (`gif: null`). Custom exercises show "No instructions yet".
 - **Week start**: Profile → Settings → Week starts on (`user_settings.week_start`; default Monday). Drives the week streak and the weekly charts.
 
-## Offline (Phases 1-3 of 4: everything except account actions)
+## Offline (complete: everything except account actions)
 - **Reads** (`lib/offline.ts`, `lib/pgrest.ts`): the Supabase client's `fetch` is wrapped. If a request fails (no signal / 10 s timeout), or while changes are waiting to be sent, reads are answered from a copy of your data saved on the phone (IndexedDB, `lib/store.ts`).
 - **Writes** (`lib/pgwrite.ts`, `lib/outbox.ts`): workouts, sets, swaps, settings, plans, days, plan exercises, custom exercises, profile, body weight, measurements and Health data are applied on the phone first (instant, works with no signal), then queued in the outbox and sent in order in the background. Nothing leaves the queue until the server confirms it. "Duplicate plan" and "Reset plan" are reproduced on the phone (they are server functions) and sent as ordinary inserts/deletes.
 - **Rows created offline** (workouts, plans, days, plan exercises, custom exercises) get a temporary negative id plus a `client_id` UUID (unique column on each of those tables) and are sent as upserts on it, so a retry after a lost reply can never duplicate them. When the server answers, the real id replaces the temporary one everywhere (`heavy:idmap` event); old temporary ids keep resolving. Body weight / measurements created offline are edited or deleted later by date. Times you did things are frozen into the queued request, not stamped at sync time.
@@ -93,7 +93,9 @@ Web: push to `main` (Vercel redeploys). iOS: `npm run ios:sync`, bump **Build** 
 - **If the server refuses a change** it stays queued, the queue pauses, and the banner offers Retry / Discard. Discard removes the refused row and what depends on it, but never your training log: a workout or logged set that pointed at a discarded plan or day is kept with that link cleared. A temporary server error (5xx/429) is just retried.
 - **Sign-in offline** (`lib/session.ts`): supabase-js reports no session when the token expired and can't refresh; we fall back to the saved login.
 - **Online-only:** signing in/up, password reset, deleting your account, avatar upload.
-- **Phase 4 (not done):** second copy of the queue in native storage (iOS can clear web storage under extreme pressure), coalescing repeated Health syncs, an airplane-mode test checklist.
+- **Safety net (Phase 4)** (`lib/nativeBackup.ts`): every unsent change is also mirrored to native iPhone storage (Capacitor Preferences), which survives iOS clearing web storage. After such a wipe, the next launch restores it (same account only, never on top of intact data) before the first download, and sends it. It is erased on sign-out. Apple Health uploads are left out (Health regenerates them) and an absurdly large queue never replaces the last good copy. The app also asks the system to keep its storage (`navigator.storage.persist`).
+- **Apple Health uploads made while offline are merged** into the one waiting upload (newest values win; an upload already on the wire is never touched; other change types are never merged, so their order is preserved).
+- **Release check:** `docs/OFFLINE-CHECKLIST.md` (airplane-mode run on a real iPhone).
 - Tests: `node --experimental-strip-types --no-warnings scripts/test-offline.mjs` (fake cloud that enforces unique positions and delete cascades, real supabase-js client).
 
 ## Backend

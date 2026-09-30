@@ -9,6 +9,7 @@ import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { KeepAwake } from '@capacitor-community/keep-awake';
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { SplashScreen } from '@capacitor/splash-screen';
 
 export const isNative = () => Capacitor.isNativePlatform();
 
@@ -22,6 +23,12 @@ const RestActivity = registerPlugin<{
 }>('RestActivity');
 
 export async function initNative() { /* status bar style is set by applyTheme() */ }
+
+/** Hide the launch screen as soon as the first real screen is ready (capacitor.config.ts keeps a timer as a safety net). */
+export async function hideSplash() {
+  if (!isNative()) return;
+  try { await SplashScreen.hide({ fadeOutDuration: 200 }); } catch { /* already hidden */ }
+}
 
 /** Style.Dark = light text (for dark backgrounds); Style.Light = dark text. */
 export async function setStatusBarDark(dark: boolean) {

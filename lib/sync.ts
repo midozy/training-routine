@@ -3,7 +3,7 @@
 // never be mistaken for "served from the saved copy".
 import { supabase, SUPABASE_URL, SUPABASE_KEY } from './supabase';
 import { TABLES, kvGet, kvSet, clearLocal, onRestWrite, setLastPull, setOnline } from './offline';
-import { configureOutbox, flush, initOutbox, pendingCount } from './outbox';
+import { configureOutbox, flush, initOutbox, pendingCount, restoreBackup } from './outbox';
 import type { Row } from './pgrest';
 
 const NO_ID = new Set(['user_settings', 'profiles', 'session_swaps']); // tables without a single `id` key (all are small)
@@ -36,10 +36,14 @@ export function pullAll(force = false): Promise<void> {
   if (!force && Date.now() - lastRun < 20_000) return Promise.resolve();
   running = (async () => {
     try {
-      if ((await pendingCount()) > 0) { void flush(); return; } // never overwrite changes that haven't been sent yet
       const { data } = await supabase.auth.getSession();
       const s = data.session;
       if (!s) return;
+      const restored = await restoreBackup(s.user.id); // after a system wipe of web storage: unsent changes come back from the native copy
+      if ((await pendingCount()) > 0) {
+        if (restored > 0) await flush(); else void flush();
+        if ((await pendingCount()) > 0) return; // never download over changes that haven't been sent yet
+      }
       const meta = await kvGet<{ userId: string; lastPull: number }>('meta');
       if (meta && meta.userId !== s.user.id) await clearLocal(); // never mix two accounts on one phone
       for (const t of TABLES) {
@@ -87,6 +91,7 @@ let started = false;
 export function startSync() {
   if (started || typeof window === 'undefined') return;
   started = true;
+  try { void navigator.storage?.persist?.(); } catch { /* not supported: fine */ } // ask the system not to clear our storage
   configureOutbox({
     url: SUPABASE_URL, key: SUPABASE_KEY,
     getToken: async () => (await supabase.auth.getSession()).data.session?.access_token ?? null,

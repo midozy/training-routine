@@ -4,6 +4,7 @@
 // exercises) is sent as an upsert on its client_id, so a retry after a lost reply can never create a second copy.
 import { kvGet, kvSet, setOnline, setPending, onClear, TABLES } from './store';
 import { FK_PARENT, ID_TABLES, CASCADE_TABLES, REFS, purgeDead } from './cascade';
+import { readBackup, writeBackup } from './nativeBackup';
 import type { Row } from './pgrest';
 
 export type Op = {
@@ -25,7 +26,7 @@ export const configureOutbox = (c: Cfg) => { cfg = c; };
 let ops: Op[] | null = null;
 type IdMap = Record<string, Record<string, number>>; // table -> temporary id -> real id
 let idmapMem: IdMap | null = null;
-onClear(() => { ops = null; idmapMem = null; });
+onClear(() => { ops = null; idmapMem = null; void writeBackup(null); }); // sign-out / other account: the backup goes too
 
 async function load(): Promise<Op[]> {
   if (!ops) {
@@ -44,6 +45,33 @@ async function save(): Promise<void> {
   const q = await load();
   await kvSet('outbox', q);
   setPending(q.length, q.find((o) => o.failed)?.failed ?? null);
+  void backup(q);
+}
+
+/** Keep the second copy (native storage) in step with the queue. */
+async function backup(q: Op[]): Promise<void> {
+  const meta = await kvGet<{ userId: string }>('meta');
+  if (!meta) return; // web storage was wiped: never overwrite the surviving backup with an empty queue
+  const ops = q.filter((o) => o.table !== 'health_samples'); // Apple Health can regenerate these, so they aren't worth the space
+  if (!ops.length) { await writeBackup(null); return; }
+  await writeBackup({ userId: meta.userId, ops, idmap: await idMap(), seq: (await kvGet<number>('outbox_seq')) ?? 0, at: Date.now() });
+}
+
+/**
+ * After the system wiped web storage: bring the unsent changes back from the native copy. Only for the same account,
+ * and only when the web copy is really gone (no saved download), so it can never replay changes on top of live data.
+ */
+export async function restoreBackup(userId: string): Promise<number> {
+  if (await kvGet('meta')) return 0;
+  if ((await load()).length) return 0;
+  const snap = await readBackup();
+  if (!snap || snap.userId !== userId || !Array.isArray(snap.ops) || !snap.ops.length) return 0;
+  ops = snap.ops as Op[];
+  idmapMem = { ...((snap.idmap ?? {}) as IdMap) };
+  await kvSet('idmap', idmapMem);
+  await kvSet('outbox_seq', Math.max((await kvGet<number>('outbox_seq')) ?? 0, snap.seq ?? 0));
+  await save();
+  return ops.length;
 }
 /** Publish the saved queue's size to the UI at start-up. */
 export async function initOutbox(): Promise<void> { await save(); }
@@ -58,8 +86,31 @@ async function nextSeq(): Promise<number> {
 /** Add changes to the queue. Several at once are saved together (all or nothing). */
 export async function enqueueMany(list: Array<Omit<Op, 'seq'>>): Promise<void> {
   const q = await load();
-  for (const op of list) q.push({ ...op, seq: await nextSeq() });
+  for (const op of list) {
+    // Repeated Apple Health syncs (offline) fold into the upload already waiting, newest values winning. Nothing else
+    // depends on these rows, and the change being sent right now is never touched.
+    if (MERGEABLE.has(op.table) && op.method === 'POST' && q.some((t, i) => sameKind(t, op) && !t.failed && !(i === 0 && flushing) && mergeInto(t, op))) continue;
+    q.push({ ...op, seq: await nextSeq() });
+  }
   await save();
+}
+
+const MERGEABLE = new Set(['health_samples']);
+const sameKind = (t: Op, op: Omit<Op, 'seq'>) => t.table === op.table && t.method === op.method && t.query === op.query && t.prefer === op.prefer;
+function mergeInto(target: Op, op: Omit<Op, 'seq'>): boolean {
+  if (!Array.isArray(target.body) || !Array.isArray(op.body)) return false;
+  const cols = (new URLSearchParams(op.query).get('on_conflict') ?? '').split(',').filter(Boolean);
+  if (!cols.length) return false;
+  const key = (r: Row) => JSON.stringify(cols.map((c) => r[c]));
+  const merged = [...(target.body as Row[])];
+  const at = new Map(merged.map((r, i) => [key(r), i]));
+  for (const r of op.body as Row[]) {
+    const i = at.get(key(r));
+    if (i == null) { at.set(key(r), merged.length); merged.push(r); } else merged[i] = r;
+  }
+  if (merged.length > 1000) return false; // keep requests a sensible size
+  target.body = merged;
+  return true;
 }
 export const enqueue = (op: Omit<Op, 'seq'>) => enqueueMany([op]);
 

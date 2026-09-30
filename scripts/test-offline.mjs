@@ -77,7 +77,7 @@ console.log(`\n${n} tests passed`);
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 mkdirSync('/tmp/heavy-test', { recursive: true });
-for (const f of ['pgrest', 'cascade', 'pgwrite', 'store', 'outbox', 'offline']) {
+for (const f of ['pgrest', 'cascade', 'pgwrite', 'store', 'nativeBackup', 'outbox', 'offline']) {
   const src = readFileSync(new URL(`../lib/${f}.ts`, import.meta.url), 'utf8').replace(/from '\.\/(\w+)'/g, "from './$1.ts'");
   writeFileSync(`/tmp/heavy-test/${f}.ts`, src);
 }
@@ -754,4 +754,118 @@ console.log('\nsafety: plans');
   });
 }
 globalThis.fetch = realFetch;
+console.log(`\n${n} tests passed`);
+
+// =====================================================================================================
+// Phase 4: native backup of unsent changes, restore after the system wipes web storage, merging Health uploads
+// =====================================================================================================
+const nb = await import(pathToFileURL('/tmp/heavy-test/nativeBackup.ts').href);
+const nativeStore = new Map();
+nb.setBackupAdapter({ get: async (k) => nativeStore.get(k) ?? null, set: async (k, v) => void nativeStore.set(k, v), remove: async (k) => void nativeStore.delete(k) });
+const BK = 'heavy.backup.v1';
+const snap = () => (nativeStore.has(BK) ? JSON.parse(nativeStore.get(BK)) : null);
+/** What the system does under storage pressure: web storage is emptied, the native copy survives. */
+async function systemWipesWebStorage() {
+  await sleep(40);
+  const kept = new Map(nativeStore);
+  await off.clearLocal();                       // empties IndexedDB + in-memory caches (and, like sign-out, the backup)...
+  nativeStore.clear(); for (const [k, v] of kept) nativeStore.set(k, v); // ...which the native storage, unlike real sign-out, survived
+  await ob.initOutbox();
+}
+
+console.log('\nnative backup of unsent changes');
+{
+  const { server, c } = await fresh3();
+  server.mode.down = true;
+  await doWorkoutOffline(c);
+  await sleep(40);
+  await later('every change is mirrored to the native copy as it is saved (account, queue, id map)', async () => {
+    const b = snap(); assert.equal(b.userId, 'u1'); assert.equal(b.ops.length, 11); assert.ok(b.ops[0].temps && Object.keys(b.ops[0].temps).length === 1);
+  });
+  await systemWipesWebStorage();
+  await later('after the wipe the phone has forgotten everything, but the native copy is intact', async () => {
+    assert.equal(pending(), 0); assert.equal(await off.kvGet('meta'), undefined); assert.equal(snap().ops.length, 11);
+  });
+  await later('a DIFFERENT account never gets someone else\'s unsent changes (and the copy is left alone)', async () => {
+    assert.equal(await ob.restoreBackup('u2'), 0); assert.equal(pending(), 0); assert.equal(snap().ops.length, 11);
+  });
+  await later('the same account gets them back: 11 changes restored', async () => { assert.equal(await ob.restoreBackup('u1'), 11); assert.equal(pending(), 11); });
+  server.mode.down = false;
+  const res = await ob.flush();
+  await later('and they sync exactly like they would have: one workout, real ids, your times, nothing lost or doubled', async () => {
+    assert.equal(res.blocked, null); assert.equal(pending(), 0);
+    assert.equal(server.db.workout_sessions.length, 1); assert.equal(server.db.workout_sessions[0].day_name, 'Push');
+    assert.deepEqual(server.db.set_logs.map((x) => [x.session_id, x.set_number, x.weight_kg, x.reps]), [[100, 1, 80, 12], [100, 2, 85, 8]]);
+    assert.ok(server.db.set_logs.every((x) => x.logged_at < '2030')); assert.equal(server.db.session_swaps.length, 1);
+    assert.equal(server.db.user_settings[0].next_position, 1); assert.deepEqual(noNegatives(server.db), []);
+  });
+  await later('once the download has rebuilt the saved copy, the native copy is emptied', async () => {
+    await off.kvSet('meta', { userId: 'u1', lastPull: 1 }); await ob.initOutbox(); await sleep(40);
+    assert.equal(snap(), null);
+  });
+}
+{
+  const { server, c } = await fresh3();
+  server.mode.down = true; await doWorkoutOffline(c); await sleep(40);
+  await later('if web storage is intact, the native copy is never replayed on top of it', async () => {
+    assert.equal(await ob.restoreBackup('u1'), 0); assert.equal(pending(), 11);
+  });
+  await later('signing out erases the native copy too', async () => { await off.clearLocal(); await sleep(40); assert.equal(snap(), null); });
+}
+{
+  const { server, c } = await fresh3();
+  server.mode.down = true; await c.from('workout_sessions').insert({ plan_day_id: 70, day_name: 'Push' }).select('id').single(); await sleep(40);
+  const before = nativeStore.get(BK);
+  await ob.enqueue({ table: 'measurements', method: 'POST', query: '', body: [{ pad: 'x'.repeat(3_100_000) }], prefer: null }); await sleep(60);
+  await later('an absurdly large queue never replaces the last good copy', async () => { assert.equal(nativeStore.get(BK), before); });
+  await off.clearLocal();
+}
+console.log(`\n${n} tests passed`);
+
+console.log('\nmerging repeated Apple Health uploads');
+const hrows = (from, to, v) => Array.from({ length: to - from }, (_, i) => ({ kind: 'steps', external_id: `h${from + i}`, day: '2026-09-28', value: v }));
+{
+  const { server, c } = await fresh3();
+  server.mode.down = true;
+  const up = (rows) => c.from('health_samples').upsert(rows, { onConflict: 'user_id,kind,external_id' });
+  await up(hrows(0, 300, 1)); await sleep(15); await up(hrows(200, 500, 2)); await sleep(15); await up(hrows(450, 520, 3));
+  await later('three syncs while offline fold into ONE waiting upload (newest values win)', async () => {
+    assert.equal(pending(), 1);
+    const hs = (await c.from('health_samples').select('*')).data; const v = (id) => hs.find((h) => h.external_id === id).value;
+    assert.equal(hs.length, 520); assert.deepEqual([v('h0'), v('h250'), v('h480')], [1, 2, 3]);
+  });
+  server.mode.down = false; await ob.flush();
+  await later('the cloud receives each sample once, with the newest value', async () => {
+    assert.equal(pending(), 0); assert.equal(server.db.health_samples.length, 520);
+    const v = (id) => server.db.health_samples.find((h) => h.external_id === id).value; assert.deepEqual([v('h0'), v('h250'), v('h480')], [1, 2, 3]);
+    assert.equal(server.log.filter((r) => r.table === 'health_samples' && r.method === 'POST').length, 1);
+  });
+}
+{
+  const { server, c } = await fresh3();
+  const slow = server.fetch; server.fetch = async (...a) => { await sleep(40); return slow(...a); }; globalThis.fetch = server.fetch;
+  const up = (rows) => c.from('health_samples').upsert(rows, { onConflict: 'user_id,kind,external_id' });
+  await up(hrows(0, 100, 1));            // starts sending immediately (slowly)
+  await sleep(10);
+  await up(hrows(50, 150, 2));           // arrives while the first is on the wire
+  await later('an upload that is already being sent is never altered: the new one waits behind it', async () => { assert.equal(pending(), 2); });
+  await settle();
+  await later('both arrive in order: overlapping samples end with the newer values, none duplicated', async () => {
+    assert.equal(pending(), 0); assert.equal(server.db.health_samples.length, 150);
+    const v = (id) => server.db.health_samples.find((h) => h.external_id === id).value; assert.deepEqual([v('h10'), v('h75'), v('h120')], [1, 2, 2]);
+  });
+}
+{
+  const { server, c } = await fresh3();
+  server.mode.down = true;
+  const bw = (kg) => c.from('bodyweight_logs').upsert({ logged_on: '2026-09-28', weight_kg: kg, source: 'manual', external_id: null }, { onConflict: 'user_id,logged_on' });
+  await bw(90); await sleep(15); await c.from('bodyweight_logs').delete().eq('logged_on', '2026-09-28'); await sleep(15); await bw(91);
+  await later('only Health samples are merged: other changes keep their order (add, delete, add ends with the entry present)', async () => {
+    assert.equal(pending(), 3);
+    server.mode.down = false; await ob.flush();
+    assert.deepEqual(server.db.bodyweight_logs.map((r) => [r.logged_on, r.weight_kg]), [['2026-09-28', 91]]);
+  });
+}
+globalThis.fetch = realFetch;
+await off.clearLocal();
 console.log(`\n${n} tests passed`);

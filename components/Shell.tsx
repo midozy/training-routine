@@ -12,6 +12,7 @@ import OfflineBanner from '@/components/OfflineBanner';
 import { PrefsProvider } from '@/lib/prefs';
 import { syncHealth } from '@/lib/health';
 import Tour from '@/components/Tour';
+import { hideSplash } from '@/lib/native';
 
 // Reachable without signing in (App Store requires the privacy policy to be public).
 const PUBLIC = ['/login', '/privacy', '/terms', '/help'];
@@ -61,6 +62,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   }, [session]);
 
   const isPublic = PUBLIC.includes(path);
+  useEffect(() => { if (isPublic || session !== undefined) void hideSplash(); }, [isPublic, session]); // first real screen is ready
   useEffect(() => {
     if (session === null && !isPublic) router.replace('/login');
     if (session && path === '/login') router.replace('/');

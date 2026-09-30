@@ -103,6 +103,7 @@ Web: push to `main` (Vercel redeploys). iOS: `npm run ios:sync`, bump **Build** 
 - **PRs** (`prCheck`): haptic + banner when a set beats your best estimated 1RM or your heaviest weight for at least that many reps (never on the first time you do an exercise). Rep-max table per exercise in Progress.
 - **Plates and warm-ups** (`platesFor`, `warmups`, `lib/gear.ts`, `components/PlateSheet.tsx`): barbell exercises only (from the exercise card's equipment). Bar and plates are remembered per phone.
 - **Weekly volume** target band (10-20 sets per muscle, `VOLUME_TARGET`) on the muscle chart.
+- **Effort, notes and logged warm-ups** (`set_logs.rpe`, `.note`, `.is_warmup`): RPE 6-10 chips and a note under the steppers; "@9" shows next to last time's sets. Tap a suggested warm-up to log it (saved as set 101, 102, ... with `is_warmup = true`); warm-ups never count in volume, PRs, charts or totals. Every reader of `set_logs` (Progress, Profile, History, the workout's "last time") filters them with `.not('is_warmup', 'is', true)`, which also works on rows saved before the column existed. Migration: `supabase/migrations/20260930_set_logs_rpe_note_warmup.sql`.
 - Tests: `node --experimental-strip-types --no-warnings scripts/test-training.mjs`.
 
 ## Backend

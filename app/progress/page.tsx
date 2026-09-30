@@ -51,7 +51,7 @@ function Strength() {
     (async () => {
       const [{ data: e }, l] = await Promise.all([
         supabase.from('exercises').select('id, name, muscle').order('name'),
-        fetchAll<Log>((a, b) => supabase.from('set_logs').select('session_id, exercise_id, weight_kg, reps, logged_at').order('logged_at').range(a, b)),
+        fetchAll<Log>((a, b) => supabase.from('set_logs').select('session_id, exercise_id, weight_kg, reps, logged_at').not('is_warmup', 'is', true).order('logged_at').range(a, b)),
       ]);
       setExs(e ?? []);
       setLogs(l.map((x) => ({ ...x, weight_kg: Number(x.weight_kg) })));
@@ -94,13 +94,13 @@ function Strength() {
     };
   }, [logs, exs, ws]);
 
+  const rms = useMemo(() => repMaxes((logs ?? []).filter((l) => l.exercise_id === sel)), [logs, sel]);
   if (!logs) return <div className="eyebrow px-1">Loading</div>;
   const best = series.reduce((a, s) => Math.max(a, s.e1rm), 0);
   const heaviest = series.reduce((a, s) => Math.max(a, s.top), 0);
   const first = series[0]?.e1rm ?? 0;
   const change = first ? ((series.at(-1)!.e1rm - first) / first) * 100 : 0;
   const maxM = Math.max(VOLUME_TARGET.hi + 2, ...weekly.muscles.map((x) => Math.max(x.now, x.avg)));
-  const rms = useMemo(() => repMaxes((logs ?? []).filter((l) => l.exercise_id === sel)), [logs, sel]);
 
   return (
     <>

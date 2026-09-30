@@ -866,6 +866,39 @@ const hrows = (from, to, v) => Array.from({ length: to - from }, (_, i) => ({ ki
     assert.deepEqual(server.db.bodyweight_logs.map((r) => [r.logged_on, r.weight_kg]), [['2026-09-28', 91]]);
   });
 }
+console.log('\neffort, notes and warm-ups');
+await later('the filter that totals and charts use skips warm-ups, even on rows saved before the column existed', async () => {
+  const rows = [{ id: 1, weight_kg: 80 }, { id: 2, weight_kg: 40, is_warmup: true }, { id: 3, weight_kg: 60, is_warmup: false }];
+  assert.deepEqual(rest.runQuery(rows, new URLSearchParams('select=id&is_warmup=not.is.true'), null).body.map((r) => r.id), [1, 3]);
+});
+{
+  const { server, c } = await fresh3();
+  server.mode.down = true;
+  const { data: sess } = await c.from('workout_sessions').insert({ plan_day_id: 70, day_name: 'Push' }).select('id').single();
+  const base = { session_id: sess.id, plan_exercise_id: 700, exercise_id: 1 };
+  const oc = { onConflict: 'session_id,plan_exercise_id,set_number' };
+  await c.from('set_logs').upsert({ ...base, set_number: 101, weight_kg: 20, reps: 10, is_warmup: true }, oc);
+  await c.from('set_logs').upsert({ ...base, set_number: 102, weight_kg: 50, reps: 8, is_warmup: true }, oc);
+  await c.from('set_logs').upsert({ ...base, set_number: 1, weight_kg: 80, reps: 8, rpe: 8, note: null }, oc);
+  await c.from('set_logs').upsert({ ...base, set_number: 1, weight_kg: 80, reps: 8, rpe: 9, note: 'felt good' }, oc);   // rate it afterwards
+  await c.from('set_logs').delete().match({ ...base, set_number: 102 });                                               // un-log a warm-up
+  await later('offline: warm-ups are kept apart from working sets, effort and notes are saved, an un-logged warm-up is gone', async () => {
+    const all = (await c.from('set_logs').select('*').eq('session_id', sess.id).order('set_number')).data;
+    assert.deepEqual(all.map((r) => [r.set_number, r.is_warmup]), [[1, false], [101, true]]);
+    const working = (await c.from('set_logs').select('weight_kg, reps, rpe, note').eq('session_id', sess.id).not('is_warmup', 'is', true)).data;
+    assert.deepEqual(working, [{ weight_kg: 80, reps: 8, rpe: 9, note: 'felt good' }]);   // the number every chart and total sees
+  });
+  server.mode.down = false; const res = await ob.flush();
+  await later('synced: the cloud has the warm-up flagged as one, the effort and the note; nothing doubled', async () => {
+    assert.equal(res.blocked, null); assert.equal(pending(), 0);
+    const rows = [...server.db.set_logs].sort((a, b) => a.set_number - b.set_number);
+    assert.deepEqual(rows.map((r) => [r.session_id, r.set_number, r.is_warmup, r.rpe ?? null, r.note ?? null]), [[100, 1, false, 9, 'felt good'], [100, 101, true, null, null]]);
+    assert.ok(rows.every((r) => r.logged_at < '2030'));
+    const working = (await c.from('set_logs').select('weight_kg').not('is_warmup', 'is', true)).data;
+    assert.deepEqual(working, [{ weight_kg: 80 }]);
+  });
+}
+
 globalThis.fetch = realFetch;
 await off.clearLocal();
 console.log(`\n${n} tests passed`);

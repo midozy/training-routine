@@ -55,7 +55,7 @@ export default function ProfilePage() {
   async function loadStats() {
     const [sessions, sets, exs, { data: bw }, { data: bf }] = await Promise.all([
       fetchAll<{ id: number; started_at: string; finished_at: string | null }>((a, b) => supabase.from('workout_sessions').select('id, started_at, finished_at').range(a, b)),
-      fetchAll<{ exercise_id: number; weight_kg: number; reps: number; logged_at: string }>((a, b) => supabase.from('set_logs').select('exercise_id, weight_kg, reps, logged_at').order('id').range(a, b)),
+      fetchAll<{ exercise_id: number; weight_kg: number; reps: number; logged_at: string }>((a, b) => supabase.from('set_logs').select('exercise_id, weight_kg, reps, logged_at').not('is_warmup', 'is', true).order('id').range(a, b)),
       supabase.from('exercises').select('id, name').then((r) => r.data ?? []),
       supabase.from('bodyweight_logs').select('weight_kg, logged_on').order('logged_on'),
       supabase.from('measurements').select('body_fat_pct, logged_on').not('body_fat_pct', 'is', null).order('logged_on', { ascending: false }).limit(1),

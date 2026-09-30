@@ -16,7 +16,7 @@ export default function History() {
     (async () => {
       const sessions = await fetchAll<Session>((a, b) => supabase.from('workout_sessions').select('*').order('started_at', { ascending: false }).range(a, b));
       const logs = await fetchAll<{ session_id: number; weight_kg: number; reps: number }>((a, b) =>
-        supabase.from('set_logs').select('session_id, weight_kg, reps').order('id').range(a, b));
+        supabase.from('set_logs').select('session_id, weight_kg, reps').not('is_warmup', 'is', true).order('id').range(a, b));
       const agg: Record<number, { sets: number; volume: number }> = {};
       for (const l of logs) { const g = (agg[l.session_id] ??= { sets: 0, volume: 0 }); g.sets++; g.volume += Number(l.weight_kg) * l.reps; }
       setRows(sessions.map((s) => ({

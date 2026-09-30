@@ -25,6 +25,7 @@ export type Session = { id: number; plan_day_id: number | null; day_name: string
 export type SetLog = {
   id: number; session_id: number; plan_exercise_id: number | null; exercise_id: number;
   set_number: number; weight_kg: number; reps: number; logged_at: string;
+  rpe: number | null; note: string | null; is_warmup: boolean; // warm-ups are saved as set 101, 102, ... and never counted in totals
 };
 
 /** Fetch every row of a query in 1000-row pages. */

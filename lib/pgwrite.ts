@@ -29,7 +29,7 @@ export const LOCAL_TABLES: Record<string, Info> = {
     hasId: true, stamp: 'started_at',
     defaults: (c) => ({ user_id: c.userId, plan_day_id: null, started_at: c.now, finished_at: null, notes: null, health_workout_id: null, avg_hr: null, max_hr: null, active_kcal: null, client_id: null }),
   },
-  set_logs: { hasId: true, stamp: 'logged_at', defaults: (c) => ({ user_id: c.userId, plan_exercise_id: null, logged_at: c.now, weight_kg: 0 }) },
+  set_logs: { hasId: true, stamp: 'logged_at', defaults: (c) => ({ user_id: c.userId, plan_exercise_id: null, logged_at: c.now, weight_kg: 0, rpe: null, note: null, is_warmup: false }) },
   session_swaps: { hasId: false, stamp: null, defaults: (c) => ({ user_id: c.userId }) },
   user_settings: { hasId: false, stamp: null, pk: ['user_id'], defaults: () => ({}) },
   plans: { hasId: true, stamp: 'created_at', defaults: (c) => ({ owner_id: c.userId, slug: null, description: null, archived: false, source_plan_id: null, created_at: c.now, client_id: null }) },

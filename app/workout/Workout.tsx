@@ -15,8 +15,8 @@ import { suggest, warmups, platesFor, prCheck, type SetRef } from '@/lib/trainin
 import { DEFAULT_GEAR, loadGear, fmtWeight, type Gear } from '@/lib/gear';
 import { supabase, epley, fmtDate, type PlanExercise, type Session, type SetLog } from '@/lib/supabase';
 
-type Row = { weight: string; reps: string; logged: boolean; touched: boolean }; // weight is in the user's display unit
-type Prev = Record<number, { weight: number; reps: number }[]>;                 // kg, keyed by exercise_id
+type Row = { weight: string; reps: string; logged: boolean; touched: boolean; rpe: number | null; note: string }; // weight is in the user's display unit
+type Prev = Record<number, { weight: number; reps: number; rpe?: number | null }[]>;                 // kg, keyed by exercise_id
 type Lib = Record<number, { name: string; muscle: string }>;
 type Swap = { exercise_id: number };
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -75,6 +75,7 @@ export default function Workout() {
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const flash = (msg: string) => { setToast(msg); clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(null), 2800); };
   const [plateOpen, setPlateOpen] = useState(false);
+  const [warm, setWarm] = useState<Record<number, { n: number; weight: number; reps: number }[]>>({}); // logged warm-ups per plan exercise (kg)
   const [gear, setGear] = useState<Gear>(DEFAULT_GEAR.kg);
   useEffect(() => { setGear(loadGear(units)); }, [units]);
 
@@ -84,15 +85,15 @@ export default function Workout() {
   /** Last session's sets + best e1RM for the given exercises (excluding this session). */
   const loadHistory = useCallback(async (ids: number[]) => {
     if (!ids.length) return { p: {} as Prev, b: {} as Record<number, number> };
-    const { data: hist } = await supabase.from('set_logs').select('session_id, exercise_id, set_number, weight_kg, reps, logged_at')
-      .in('exercise_id', ids).neq('session_id', sidRef.current).order('logged_at', { ascending: false }).limit(1000);
+    const { data: hist } = await supabase.from('set_logs').select('session_id, exercise_id, set_number, weight_kg, reps, rpe, logged_at')
+      .in('exercise_id', ids).neq('session_id', sidRef.current).not('is_warmup', 'is', true).order('logged_at', { ascending: false }).limit(1000);
     const p: Prev = {}; const latest: Record<number, number> = {}; const b: Record<number, number> = {}; const all: Record<number, SetRef[]> = {};
     for (const h of hist ?? []) {
       (all[h.exercise_id] ??= []).push({ weight: Number(h.weight_kg), reps: h.reps });
       b[h.exercise_id] = Math.max(b[h.exercise_id] ?? 0, epley(Number(h.weight_kg), h.reps));
       latest[h.exercise_id] ??= h.session_id;
       if (latest[h.exercise_id] !== h.session_id) continue;
-      (p[h.exercise_id] ??= [])[h.set_number - 1] = { weight: Number(h.weight_kg), reps: h.reps };
+      (p[h.exercise_id] ??= [])[h.set_number - 1] = { weight: Number(h.weight_kg), reps: h.reps, rpe: h.rpe };
     }
     setPrev((o) => ({ ...o, ...p })); setBest((o) => ({ ...o, ...b })); setHist((o) => ({ ...o, ...all }));
     return { p, b };
@@ -102,9 +103,9 @@ export default function Workout() {
     const n = Math.max(x.target_reps.length, ...logged.map((l) => l.set_number));
     return Array.from({ length: n }, (_, i) => {
       const l = logged.find((z) => z.set_number === i + 1);
-      if (l) return { weight: fw(Number(l.weight_kg)), reps: String(l.reps), logged: true, touched: true };
+      if (l) return { weight: fw(Number(l.weight_kg)), reps: String(l.reps), logged: true, touched: true, rpe: l.rpe ?? null, note: l.note ?? '' };
       const pv = p[exId]?.[i] ?? p[exId]?.filter(Boolean).at(-1);
-      return { weight: pv ? fw(pv.weight) : '', reps: String(x.target_reps[i] ?? x.target_reps.at(-1)), logged: false, touched: false };
+      return { weight: pv ? fw(pv.weight) : '', reps: String(x.target_reps[i] ?? x.target_reps.at(-1)), logged: false, touched: false, rpe: null, note: '' };
     });
   }, [fw]);
 
@@ -136,12 +137,17 @@ export default function Workout() {
       }
       setExs(list);
       const ids = new Set(list.map((x) => x.id));
-      setOrphans(((logs ?? []) as SetLog[]).filter((l) => !l.plan_exercise_id || !ids.has(l.plan_exercise_id)));
+      const allLogs = (logs ?? []) as SetLog[];
+      const working = allLogs.filter((l) => !l.is_warmup);
+      const wu: Record<number, { n: number; weight: number; reps: number }[]> = {};
+      for (const l of allLogs) if (l.is_warmup && l.plan_exercise_id) (wu[l.plan_exercise_id] ??= []).push({ n: l.set_number, weight: Number(l.weight_kg), reps: l.reps });
+      setWarm(wu);
+      setOrphans(working.filter((l) => !l.plan_exercise_id || !ids.has(l.plan_exercise_id)));
 
       const eff = (x: PlanExercise) => swapMap[x.id]?.exercise_id ?? x.exercise_id;
       const { p } = await loadHistory([...new Set(list.map(eff))]);
       const byEx: Record<number, SetLog[]> = {};
-      for (const l of (logs ?? []) as SetLog[]) if (l.plan_exercise_id) (byEx[l.plan_exercise_id] ??= []).push(l);
+      for (const l of working) if (l.plan_exercise_id) (byEx[l.plan_exercise_id] ??= []).push(l);
       const r: Record<number, Row[]> = {};
       for (const x of list) r[x.id] = freshRows(x, eff(x), p, byEx[x.id] ?? []);
       setRows(r);
@@ -217,7 +223,7 @@ export default function Workout() {
     const weight = toKg(Number(row.weight) || 0), reps = Number(row.reps) || 0;
     if (!reps) return;
     const { error } = await supabase.from('set_logs').upsert(
-      { session_id: sessionId, plan_exercise_id: x.id, exercise_id: effId(x), set_number: sel + 1, weight_kg: weight, reps },
+      { session_id: sessionId, plan_exercise_id: x.id, exercise_id: effId(x), set_number: sel + 1, weight_kg: weight, reps, rpe: row.rpe, note: row.note.trim() || null },
       { onConflict: 'session_id,plan_exercise_id,set_number' },
     );
     if (error) return alert(error.message);
@@ -245,6 +251,42 @@ export default function Workout() {
     setRest({ endAt: Date.now() + secs * 1000, total: secs, next: `${effName(nx)} · Set ${nextSet + 1} — ${nr.weight || '0'} ${units} × ${nr.reps}` });
   }
 
+  /** Save a change to the selected set's effort or note (the set is already logged). */
+  async function saveSet(next: Row) {
+    if (!x) return;
+    const { error } = await supabase.from('set_logs').upsert(
+      { session_id: sessionId, plan_exercise_id: x.id, exercise_id: effId(x), set_number: sel + 1, weight_kg: toKg(Number(next.weight) || 0), reps: Number(next.reps) || 0, rpe: next.rpe, note: next.note.trim() || null },
+      { onConflict: 'session_id,plan_exercise_id,set_number' },
+    );
+    if (error) alert(error.message);
+  }
+  function setRpe(v: number) {
+    if (!row) return;
+    tap('light');
+    const rpe = row.rpe === v ? null : v; // tap again to clear
+    patch({ rpe });
+    if (row.logged) void saveSet({ ...row, rpe });
+  }
+
+  /** Warm-ups are saved like sets (numbered 101, 102, ...) but never count towards volume, PRs or charts. */
+  async function logWarm(s: { weight: number; reps: number }) {
+    if (!x) return;
+    const used = new Set((warm[x.id] ?? []).map((z) => z.n));
+    let n = 101; while (used.has(n)) n++;
+    const { error } = await supabase.from('set_logs').upsert(
+      { session_id: sessionId, plan_exercise_id: x.id, exercise_id: effId(x), set_number: n, weight_kg: s.weight, reps: s.reps, is_warmup: true },
+      { onConflict: 'session_id,plan_exercise_id,set_number' },
+    );
+    if (error) return alert(error.message);
+    tap('light');
+    setWarm((o) => ({ ...o, [x.id]: [...(o[x.id] ?? []), { n, weight: s.weight, reps: s.reps }] }));
+  }
+  async function undoWarm(n: number) {
+    if (!x) return;
+    await supabase.from('set_logs').delete().match({ session_id: sessionId, plan_exercise_id: x.id, set_number: n });
+    setWarm((o) => ({ ...o, [x.id]: (o[x.id] ?? []).filter((z) => z.n !== n) }));
+  }
+
   async function undoSet() {
     if (!x || !row?.logged) return;
     await supabase.from('set_logs').delete().match({ session_id: sessionId, plan_exercise_id: x.id, set_number: sel + 1 });
@@ -254,7 +296,7 @@ export default function Workout() {
   function addSet() {
     if (!x) return;
     const last = r.at(-1)!;
-    setRows((all) => ({ ...all, [x.id]: [...all[x.id], { weight: last.weight, reps: last.reps, logged: false, touched: false }] }));
+    setRows((all) => ({ ...all, [x.id]: [...all[x.id], { weight: last.weight, reps: last.reps, logged: false, touched: false, rpe: null, note: '' }] }));
     setSel(r.length);
   }
 
@@ -312,6 +354,9 @@ export default function Workout() {
   const sugNew = !!sug && (Math.abs(sug.weight - toKg(shownWeight)) > 0.01 || sug.reps !== Number(row?.reps));
   const ramp = isBarbell && isReps && done === 0 ? warmups(Number(r[0]?.weight) || 0, gear.bar, units === 'kg' ? 2.5 : 5) : [];
   const plates = isBarbell && shownWeight > 0 ? platesFor(shownWeight, gear.bar, gear.plates) : null;
+  const loggedWarm = (x ? warm[x.id] ?? [] : []).slice().sort((a, b) => a.n - b.n);
+  const maxWarm = Math.max(0, ...loggedWarm.map((z) => w(z.weight)));
+  const todoRamp = ramp.filter((s) => s.weight > maxWarm + 0.01); // suggestions still ahead of what you have logged
   const allDone = exs.length > 0 && exs.every((e) => (rows[e.id] ?? []).every((z) => z.logged));
   const unitLbl = x?.unit === 'steps' ? 'Steps' : 'Reps';
   const orphanGroups = Object.entries(orphans.reduce<Record<number, SetLog[]>>((m, o) => ((m[o.exercise_id] ??= []).push(o), m), {}));
@@ -351,7 +396,7 @@ export default function Workout() {
             {pv?.length ? (
               <div className="mt-3 flex items-baseline flex-wrap gap-x-3 gap-y-1">
                 <span className="eyebrow">Last time</span>
-                {pv.map((s, i) => <span key={i} className="num text-[20px] leading-none text-ink">{fw(s.weight)}<span className="text-sub">×</span>{s.reps}</span>)}
+                {pv.map((s, i) => <span key={i} className="num text-[20px] leading-none text-ink">{fw(s.weight)}<span className="text-sub">×</span>{s.reps}{s.rpe ? <span className="text-sub text-[13px]"> @{s.rpe}</span> : null}</span>)}
               </div>
             ) : <p className="mt-3 eyebrow">First time logging this one</p>}
             {sugNew && sug && (
@@ -362,11 +407,16 @@ export default function Workout() {
                 <Tip id="suggest" title="Suggested load">Hit all your target reps last time? Add a little weight. Otherwise aim for one more rep at the same weight. A nudge, not a rule.</Tip>
               </div>
             )}
-            {ramp.length > 0 && (
-              <div className="mt-3 flex items-baseline flex-wrap gap-x-3 gap-y-1">
+            {(todoRamp.length > 0 || loggedWarm.length > 0) && (
+              <div className="mt-3 flex items-center flex-wrap gap-2">
                 <span className="eyebrow">Warm-up</span>
-                {ramp.map((s, i) => <span key={i} className="num text-[17px] leading-none text-ink">{fmtWeight(s.weight)}<span className="text-sub">×</span>{s.reps}</span>)}
-                <Tip id="warmup" title="Warm-up ramp">A suggested ramp towards your first working set. It isn&apos;t logged and doesn&apos;t count towards volume or PRs.</Tip>
+                {loggedWarm.map((z) => (
+                  <button key={z.n} className="pill !bg-ink !text-on-ink" aria-label={`Remove warm-up ${fmtWeight(w(z.weight))} by ${z.reps}`} onClick={() => undoWarm(z.n)}>
+                    <Icon name="check" size={11} strokeWidth={3.2} />{fmtWeight(w(z.weight))}×{z.reps}
+                  </button>
+                ))}
+                {todoRamp.map((t, i) => <button key={i} className="pill" onClick={() => logWarm({ weight: toKg(t.weight), reps: t.reps })}>{fmtWeight(t.weight)}×{t.reps}</button>)}
+                <Tip id="warmup" title="Warm-up sets">A suggested ramp towards your first working set. Tap one to log it, tap a logged one to remove it. Warm-ups are saved with the workout but never count towards volume, PRs or charts.</Tip>
               </div>
             )}
             {plates && (
@@ -394,6 +444,19 @@ export default function Workout() {
           <div className="px-4 py-3 flex-1 flex flex-col justify-center gap-3">
             <Stepper label={`Weight · ${units}`} value={row.weight} onChange={(v) => patch({ weight: v.replace(',', '.') })} onMinus={() => step('weight', -wStep)} onPlus={() => step('weight', wStep)} big inputMode="decimal" />
             <Stepper label={`${unitLbl} · target ${x.target_reps[sel] ?? x.target_reps.at(-1)}`} value={row.reps} onChange={(v) => patch({ reps: v })} onMinus={() => step('reps', -1)} onPlus={() => step('reps', 1)} inputMode="numeric" />
+            <div className="rounded-2xl bg-card p-3">
+              <div className="flex items-center gap-2">
+                <span className="eyebrow">Effort · RPE</span>
+                <Tip id="rpe" title="Effort (RPE)">How hard the set felt, from 6 to 10. 10 = nothing left, 9 = one rep left, 8 = two left, 7 = three left. Tap again to clear. It is just for you and never changes your numbers.</Tip>
+              </div>
+              <div className="flex gap-2 mt-2">
+                {[6, 7, 8, 9, 10].map((v) => (
+                  <button key={v} aria-pressed={row.rpe === v} onClick={() => setRpe(v)} className={`flex-1 h-11 rounded-xl num text-xl ${row.rpe === v ? 'bg-ink text-on-ink' : 'bg-card2 text-ink'}`}>{v}</button>
+                ))}
+              </div>
+              <input className="field mt-3" placeholder="Note for this set (optional)" value={row.note} maxLength={200}
+                onChange={(e) => patch({ note: e.target.value })} onBlur={() => { if (row.logged) void saveSet(row); }} />
+            </div>
           </div>
 
           {/* actions */}

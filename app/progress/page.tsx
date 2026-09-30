@@ -9,6 +9,7 @@ import Tip from '@/components/Tip';
 import { weekStartOf, weekRangeLong, type WeekStart } from '@/lib/week';
 import { usePrefs } from '@/lib/prefs';
 import { supabase, fetchAll, epley } from '@/lib/supabase';
+import { repMaxes, volumeStatus, VOLUME_TARGET } from '@/lib/training';
 
 type Log = { session_id: number; exercise_id: number; weight_kg: number; reps: number; logged_at: string };
 type Ex = { id: number; name: string; muscle: string };
@@ -98,7 +99,8 @@ function Strength() {
   const heaviest = series.reduce((a, s) => Math.max(a, s.top), 0);
   const first = series[0]?.e1rm ?? 0;
   const change = first ? ((series.at(-1)!.e1rm - first) / first) * 100 : 0;
-  const maxM = Math.max(1, ...weekly.muscles.map((x) => Math.max(x.now, x.avg)));
+  const maxM = Math.max(VOLUME_TARGET.hi + 2, ...weekly.muscles.map((x) => Math.max(x.now, x.avg)));
+  const rms = useMemo(() => repMaxes((logs ?? []).filter((l) => l.exercise_id === sel)), [logs, sel]);
 
   return (
     <>
@@ -121,6 +123,21 @@ function Strength() {
           : <p className="py-10 text-center text-sub">{logs.length === 0 ? 'Log your first workout to see strength trends.' : 'No sets logged for this exercise yet.'}</p>}
       </section>
 
+      {rms.length > 0 && (
+        <section className="card p-4 mt-3">
+          <div className="eyebrow mb-3 flex items-center gap-2">Rep maxes <Tip id="repmax" title="Rep maxes">The heaviest weight you have lifted for at least that many reps, and when. Beat one of these in a workout and you get a PR.</Tip></div>
+          <div className="grid grid-cols-[52px_1fr_auto] gap-x-3 gap-y-2 items-baseline">
+            {rms.map((r) => (
+              <div key={r.reps} className="contents">
+                <span className="num text-lg text-sub">{r.reps} rep{r.reps === 1 ? '' : 's'}</span>
+                <span className="num text-2xl">{w(r.weight)} <span className="text-sm text-sub">{units}</span></span>
+                <span className="text-[13px] text-sub">{short(new Date(r.date))}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {series.length > 0 && (
         <section className="card p-4 mt-3">
           <div className="eyebrow mb-3">Volume per session · {units} × reps</div>
@@ -134,13 +151,14 @@ function Strength() {
       </section>
 
       <section className="card p-4 mt-3">
-        <div className="flex justify-between eyebrow mb-4"><span className="flex items-center gap-2">This week by muscle <Tip id="muscle-chart" title="This week by muscle">The bar is how many sets you have done this week. The tick is your average over the previous 7 weeks.</Tip></span><span className="normal-case tracking-normal">bar = now · tick = 7-wk avg</span></div>
+        <div className="flex justify-between eyebrow mb-4"><span className="flex items-center gap-2">This week by muscle <Tip id="muscle-chart" title="This week by muscle">The bar is how many sets you have done this week. The tick is your average over the previous 7 weeks. The shaded band is 10 to 20 sets a week, a commonly used productive range for most people. It is a guide, not a rule.</Tip></span><span className="normal-case tracking-normal">bar = now · tick = 7-wk avg</span></div>
         {weekly.muscles.length === 0 && <p className="text-sub">Log a workout to see weekly volume.</p>}
         <div className="space-y-3">
           {weekly.muscles.map(({ m, now, avg }) => (
             <div key={m} className="grid grid-cols-[92px_1fr_28px] items-center gap-3">
-              <span className="text-[14px] font-medium">{m}</span>
+              <span><span className="block text-[14px] font-medium">{m}</span><span className={`block text-[11px] ${volumeStatus(now) === 'in' ? 'text-ink font-semibold' : 'text-sub'}`}>{{ under: 'Below target', in: 'On target', over: 'Above target' }[volumeStatus(now)]}</span></span>
               <div className="relative h-4 rounded-full bg-card2">
+                <div className="absolute inset-y-0 rounded-full bg-volt/30" style={{ left: `${(VOLUME_TARGET.lo / maxM) * 100}%`, width: `${((VOLUME_TARGET.hi - VOLUME_TARGET.lo) / maxM) * 100}%` }} />
                 <div className="absolute inset-y-0 left-0 rounded-full bg-ink" style={{ width: `${(now / maxM) * 100}%` }} />
                 <div className="absolute -inset-y-1 w-[3px] rounded bg-volt ring-1 ring-ink" style={{ left: `calc(${(avg / maxM) * 100}% - 1px)` }} />
               </div>

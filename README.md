@@ -98,6 +98,13 @@ Web: push to `main` (Vercel redeploys). iOS: `npm run ios:sync`, bump **Build** 
 - **Release check:** `docs/OFFLINE-CHECKLIST.md` (airplane-mode run on a real iPhone).
 - Tests: `node --experimental-strip-types --no-warnings scripts/test-offline.mjs` (fake cloud that enforces unique positions and delete cascades, real supabase-js client).
 
+## Training features
+- **Progression** (`lib/training.ts` `suggest`): "Try 82.5 kg × 8" chip under "Last time" (double progression: hit the target reps → add weight, else one more rep).
+- **PRs** (`prCheck`): haptic + banner when a set beats your best estimated 1RM or your heaviest weight for at least that many reps (never on the first time you do an exercise). Rep-max table per exercise in Progress.
+- **Plates and warm-ups** (`platesFor`, `warmups`, `lib/gear.ts`, `components/PlateSheet.tsx`): barbell exercises only (from the exercise card's equipment). Bar and plates are remembered per phone.
+- **Weekly volume** target band (10-20 sets per muscle, `VOLUME_TARGET`) on the muscle chart.
+- Tests: `node --experimental-strip-types --no-warnings scripts/test-training.mjs`.
+
 ## Backend
 Supabase project `training-routine` (ref `danzdvismbezkymgstfu`, eu-central-1).
 - Schema: `supabase/schema.sql` (initial). Later migrations were applied through the Supabase migrations history.

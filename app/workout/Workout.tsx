@@ -2,7 +2,8 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import ExerciseGuide from '@/components/ExerciseGuide';
+import ExerciseGuide, { guideFor } from '@/components/ExerciseGuide';
+import PlateSheet from '@/components/PlateSheet';
 import ExercisePicker from '@/components/ExercisePicker';
 import Icon from '@/components/Icon';
 import Tip from '@/components/Tip';
@@ -10,6 +11,8 @@ import { usePrefs } from '@/lib/prefs';
 import { tap, success, keepScreenOn, scheduleRestAlert, cancelRestAlert } from '@/lib/native';
 import { saveSessionToHealth } from '@/lib/health';
 import { resolveSessionId } from '@/lib/outbox';
+import { suggest, warmups, platesFor, prCheck, type SetRef } from '@/lib/training';
+import { DEFAULT_GEAR, loadGear, fmtWeight, type Gear } from '@/lib/gear';
 import { supabase, epley, fmtDate, type PlanExercise, type Session, type SetLog } from '@/lib/supabase';
 
 type Row = { weight: string; reps: string; logged: boolean; touched: boolean }; // weight is in the user's display unit
@@ -67,6 +70,13 @@ export default function Workout() {
   const [guideOpen, setGuideOpen] = useState(false);
   const [swapping, setSwapping] = useState(false);
   const [ready, setReady] = useState(false);
+  const [hist, setHist] = useState<Record<number, SetRef[]>>({}); // every earlier set per exercise (kg), for PR checks
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const flash = (msg: string) => { setToast(msg); clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(null), 2800); };
+  const [plateOpen, setPlateOpen] = useState(false);
+  const [gear, setGear] = useState<Gear>(DEFAULT_GEAR.kg);
+  useEffect(() => { setGear(loadGear(units)); }, [units]);
 
   const effId = useCallback((x: PlanExercise) => swaps[x.id]?.exercise_id ?? x.exercise_id, [swaps]);
   const effName = useCallback((x: PlanExercise) => (swaps[x.id] ? lib[swaps[x.id].exercise_id]?.name ?? x.label : x.label), [swaps, lib]);
@@ -76,14 +86,15 @@ export default function Workout() {
     if (!ids.length) return { p: {} as Prev, b: {} as Record<number, number> };
     const { data: hist } = await supabase.from('set_logs').select('session_id, exercise_id, set_number, weight_kg, reps, logged_at')
       .in('exercise_id', ids).neq('session_id', sidRef.current).order('logged_at', { ascending: false }).limit(1000);
-    const p: Prev = {}; const latest: Record<number, number> = {}; const b: Record<number, number> = {};
+    const p: Prev = {}; const latest: Record<number, number> = {}; const b: Record<number, number> = {}; const all: Record<number, SetRef[]> = {};
     for (const h of hist ?? []) {
+      (all[h.exercise_id] ??= []).push({ weight: Number(h.weight_kg), reps: h.reps });
       b[h.exercise_id] = Math.max(b[h.exercise_id] ?? 0, epley(Number(h.weight_kg), h.reps));
       latest[h.exercise_id] ??= h.session_id;
       if (latest[h.exercise_id] !== h.session_id) continue;
       (p[h.exercise_id] ??= [])[h.set_number - 1] = { weight: Number(h.weight_kg), reps: h.reps };
     }
-    setPrev((o) => ({ ...o, ...p })); setBest((o) => ({ ...o, ...b }));
+    setPrev((o) => ({ ...o, ...p })); setBest((o) => ({ ...o, ...b })); setHist((o) => ({ ...o, ...all }));
     return { p, b };
   }, []);
 
@@ -212,6 +223,11 @@ export default function Workout() {
     if (error) return alert(error.message);
     tap('medium');
     const wasLogged = row.logged;
+    if (!wasLogged && (hist[effId(x)]?.length ?? 0) > 0) { // a PR against everything before (other workouts + earlier sets today)
+      const earlier: SetRef[] = [...hist[effId(x)], ...r.filter((z, k) => k !== sel && z.logged).map((z) => ({ weight: toKg(Number(z.weight) || 0), reps: Number(z.reps) || 0 }))];
+      const pr = prCheck(earlier, { weight, reps });
+      if (pr.e1rm || pr.rep) { success(); flash(`New PR · ${fw(weight)} ${units} × ${reps}`); }
+    }
     const list = r.map((z, k) => (k === sel ? { ...z, logged: true, touched: true } : z));
     setRows((all) => ({ ...all, [x.id]: all[x.id].map((z, k) => (k === sel ? { ...z, logged: true, touched: true } : z)) }));
     if (wasLogged) return; // editing an earlier set — stay put, no rest
@@ -287,12 +303,22 @@ export default function Workout() {
   const sessionBest = Math.max(0, ...r.filter((z) => z.logged).map((z) => epley(toKg(Number(z.weight) || 0), Number(z.reps) || 0)));
   const pr = sessionBest > 0 && best[exId] !== undefined && sessionBest > best[exId];
   const pv = prev[exId]?.filter(Boolean);
+  const isReps = x?.unit !== 'steps';
+  const equip = guideFor(name)?.equipment;
+  const isBarbell = equip === 'Barbell';
+  const shownWeight = row ? Number(row.weight) || 0 : 0;                       // in the display unit
+  const lastForSet = prev[exId]?.[sel] ?? prev[exId]?.filter(Boolean).at(-1);
+  const sug = x && row && isReps && !row.logged ? suggest(lastForSet, x.target_reps[sel] ?? x.target_reps.at(-1) ?? 0, units) : null;
+  const sugNew = !!sug && (Math.abs(sug.weight - toKg(shownWeight)) > 0.01 || sug.reps !== Number(row?.reps));
+  const ramp = isBarbell && isReps && done === 0 ? warmups(Number(r[0]?.weight) || 0, gear.bar, units === 'kg' ? 2.5 : 5) : [];
+  const plates = isBarbell && shownWeight > 0 ? platesFor(shownWeight, gear.bar, gear.plates) : null;
   const allDone = exs.length > 0 && exs.every((e) => (rows[e.id] ?? []).every((z) => z.logged));
   const unitLbl = x?.unit === 'steps' ? 'Steps' : 'Reps';
   const orphanGroups = Object.entries(orphans.reduce<Record<number, SetLog[]>>((m, o) => ((m[o.exercise_id] ??= []).push(o), m), {}));
 
   return (
     <div className="min-h-dvh flex flex-col max-w-xl mx-auto">
+      {toast && <div role="status" className="pointer-events-none fixed left-1/2 -translate-x-1/2 top-[calc(env(safe-area-inset-top)+58px)] z-50 rounded-full bg-volt text-[#111] px-4 py-2 font-display font-bold tracking-wide shadow-lg">{toast}</div>}
       {/* top bar */}
       <div className="safe-top">
         <div className="flex items-center justify-between px-4 h-12">
@@ -328,6 +354,28 @@ export default function Workout() {
                 {pv.map((s, i) => <span key={i} className="num text-[20px] leading-none text-ink">{fw(s.weight)}<span className="text-sub">×</span>{s.reps}</span>)}
               </div>
             ) : <p className="mt-3 eyebrow">First time logging this one</p>}
+            {sugNew && sug && (
+              <div className="mt-2 flex items-center gap-1">
+                <button className="pill" onClick={() => patch({ weight: fw(sug.weight), reps: String(sug.reps), touched: true })}>
+                  <Icon name="up" size={12} />Try {fw(sug.weight)} {units} × {sug.reps}
+                </button>
+                <Tip id="suggest" title="Suggested load">Hit all your target reps last time? Add a little weight. Otherwise aim for one more rep at the same weight. A nudge, not a rule.</Tip>
+              </div>
+            )}
+            {ramp.length > 0 && (
+              <div className="mt-3 flex items-baseline flex-wrap gap-x-3 gap-y-1">
+                <span className="eyebrow">Warm-up</span>
+                {ramp.map((s, i) => <span key={i} className="num text-[17px] leading-none text-ink">{fmtWeight(s.weight)}<span className="text-sub">×</span>{s.reps}</span>)}
+                <Tip id="warmup" title="Warm-up ramp">A suggested ramp towards your first working set. It isn&apos;t logged and doesn&apos;t count towards volume or PRs.</Tip>
+              </div>
+            )}
+            {plates && (
+              <button className="mt-3 flex items-baseline gap-2 text-left" onClick={() => setPlateOpen(true)}>
+                <span className="eyebrow">Each side</span>
+                <span className="num text-[17px] leading-none text-ink">{plates.perSide.length ? plates.perSide.map(fmtWeight).join(' · ') : 'Bar only'}</span>
+                {!plates.exact && <span className="text-[12px] text-sub">(closest)</span>}
+              </button>
+            )}
           </div>
 
           {/* set strip */}
@@ -451,6 +499,7 @@ export default function Workout() {
         </div>
       )}
 
+      <PlateSheet open={plateOpen} onClose={() => setPlateOpen(false)} weight={shownWeight} unit={units} gear={gear} onGear={setGear} />
       {guideOpen && x && <ExerciseGuide name={name} cue={swapped ? null : x.cue} onClose={() => setGuideOpen(false)} />}
       {swapping && x && <ExercisePicker title="Swap for today" highlightMuscle={lib[x.exercise_id]?.muscle} onClose={() => setSwapping(false)} onPick={(e) => swapTo(e.id)} />}
     </div>

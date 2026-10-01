@@ -20,6 +20,9 @@ nonisolated struct WatchContext: Equatable, Sendable {
     var units = "kg"
     var suggestedWeight = ""       // what the phone would prefill — the Watch starts from the same number
     var suggestedReps = ""
+    var exerciseIndex = 0          // 1-based
+    var exerciseCount = 0
+    var sets: [WatchSet] = []      // every set of the current exercise
 
     var isResting: Bool { active && restEnd != nil }
 
@@ -42,7 +45,25 @@ nonisolated struct WatchContext: Equatable, Sendable {
         c.units = dict["units"] as? String ?? "kg"
         c.suggestedWeight = dict["suggestedWeight"] as? String ?? ""
         c.suggestedReps = dict["suggestedReps"] as? String ?? ""
+        c.exerciseIndex = dict["exerciseIndex"] as? Int ?? 0
+        c.exerciseCount = dict["exerciseCount"] as? Int ?? 0
+        c.sets = (dict["sets"] as? [[String: Any]] ?? []).map(WatchSet.from)
         return c
+    }
+}
+
+/// One row of the set list (weight/reps exactly as entered on the phone, in its display units).
+nonisolated struct WatchSet: Equatable, Sendable, Identifiable {
+    var n = 0
+    var weight = ""
+    var reps = ""
+    var logged = false
+    var target = ""
+    var id: Int { n }
+
+    static func from(_ d: [String: Any]) -> WatchSet {
+        WatchSet(n: d["n"] as? Int ?? 0, weight: d["weight"] as? String ?? "", reps: d["reps"] as? String ?? "",
+                 logged: d["logged"] as? Bool ?? false, target: d["target"] as? String ?? "")
     }
 }
 

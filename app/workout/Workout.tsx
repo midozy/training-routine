@@ -211,6 +211,7 @@ export default function Workout() {
 
   // Lock screen / Dynamic Island: one Live Activity for the whole workout (exercise + set while training, countdown while resting).
   const totalSets = exs.reduce((n, e) => n + (rows[e.id]?.length ?? 0), 0);
+  const watchSetsSig = r.map((z) => `${z.weight}|${z.reps}|${z.logged ? 1 : 0}`).join(','); // any set edit on this exercise re-syncs the Watch
   const totalDone = exs.reduce((n, e) => n + (rows[e.id]?.filter((z) => z.logged).length ?? 0), 0);
   useEffect(() => {
     if (!ready || !session || session.finished_at || !x) return;
@@ -224,10 +225,15 @@ export default function Workout() {
     const watchCtx: WatchContext = {
       ...live, active: true, sessionId, planExerciseId: x.id, exerciseId: effId(x), setNumber: sel + 1, units,
       suggestedWeight: row?.weight ?? '', suggestedReps: row?.reps ?? '',
+      exerciseIndex: cur + 1, exerciseCount: exs.length,
+      sets: r.map((z, i) => ({
+        n: i + 1, weight: z.weight, reps: z.reps, logged: z.logged,
+        target: String(x.target_reps[i] ?? x.target_reps.at(-1) ?? ''),
+      })),
     };
     const t = setTimeout(() => { void syncWorkoutActivity(live); void pushWatchContext(watchCtx); }, 150); // fold quick successive changes into one update
     return () => clearTimeout(t);
-  }, [ready, session?.id, session?.finished_at, sessionId, x?.id, sel, row?.weight, row?.reps, r.length, totalDone, totalSets, rest?.endAt, rest?.total, units]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ready, session?.id, session?.finished_at, sessionId, x?.id, sel, row?.weight, row?.reps, r.length, totalDone, totalSets, rest?.endAt, rest?.total, units, watchSetsSig]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---------- Apple Watch: quick-log the current set from the wrist ---------- */
   useEffect(() => {

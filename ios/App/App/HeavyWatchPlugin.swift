@@ -51,13 +51,26 @@ public class HeavyWatchPlugin: CAPPlugin, CAPBridgedPlugin {
         ] {
             if let v = call.getString(key) { ctx[key] = v }
         }
-        for key in ["setsDone", "setsTotal", "sessionId", "planExerciseId", "exerciseId", "setNumber"] {
+        for key in ["setsDone", "setsTotal", "sessionId", "planExerciseId", "exerciseId", "setNumber", "exerciseIndex", "exerciseCount"] {
             if let v = call.getInt(key) { ctx[key] = v }
         }
         for key in ["startedAt", "restStart", "restEnd", "updatedAt"] {
             if let v = call.getDouble(key) { ctx[key] = v }
         }
         ctx["active"] = call.getBool("active") ?? true
+        // The set list: rebuilt with plain property-list types only (applicationContext rejects anything else).
+        if let sets = call.getArray("sets") {
+            ctx["sets"] = sets.compactMap { item -> [String: Any]? in
+                guard let o = item as? JSObject else { return nil }
+                return [
+                    "n": (o["n"] as? NSNumber)?.intValue ?? 0,
+                    "weight": o["weight"] as? String ?? "",
+                    "reps": o["reps"] as? String ?? "",
+                    "logged": o["logged"] as? Bool ?? false,
+                    "target": o["target"] as? String ?? "",
+                ]
+            }
+        }
         do {
             try session.updateApplicationContext(ctx)
             call.resolve()

@@ -18,14 +18,17 @@ struct QuickLogView: View {
             if !ctx.active {
                 NoWorkoutView()
             } else {
-                VStack(spacing: 8) {
-                    Text(ctx.setText).font(.system(size: 12, weight: .semibold)).foregroundColor(voltColor)
+                VStack(spacing: 6) {
+                    VStack(spacing: 0) {
+                        Text(ctx.exercise).font(.system(size: 11, weight: .semibold)).foregroundColor(paperColor.opacity(0.7))
+                            .lineLimit(1).minimumScaleFactor(0.6)
+                        Text(ctx.setText).font(.system(size: 12, weight: .semibold)).foregroundColor(voltColor)
+                    }
 
                     VStack(spacing: 0) {
                         Text("\(fmt(weight)) \(ctx.units)")
                             .font(.system(size: 26, weight: .heavy, design: .rounded))
                             .foregroundColor(paperColor)
-                        Text("turn crown to adjust").font(.system(size: 9)).foregroundColor(paperColor.opacity(0.4))
                     }
                     .focusable(true)
                     .digitalCrownRotation($crownValue, from: -1000, through: 1000, by: 1, sensitivity: .medium, isContinuous: true)

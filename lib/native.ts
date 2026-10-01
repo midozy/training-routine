@@ -47,7 +47,13 @@ export type WatchContext = LiveState & {
   units: 'kg' | 'lb';
   suggestedWeight: string;  // what the phone would prefill, in display units — the Watch starts from the same number
   suggestedReps: string;
+  exerciseIndex: number;    // 1-based position in today's workout
+  exerciseCount: number;
+  sets: WatchSet[];         // every set of the current exercise, for the Watch's set list
 };
+
+/** One row of the Watch's set list. weight/reps are display strings, as entered on the phone. */
+export type WatchSet = { n: number; weight: string; reps: string; logged: boolean; target: string };
 
 /** A set quick-logged on the Watch, as delivered to JS. */
 export type WatchQuickLog = {

@@ -28,7 +28,7 @@ private func restWindow(_ s: WState) -> ClosedRange<Date> {
 struct WorkoutActivityWidget: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: WorkoutActivityAttributes.self) { context in
-            LockScreenWorkoutView(attrs: context.attributes, state: context.state, isStale: context.isStale)
+            ActivityContentView(attrs: context.attributes, state: context.state, isStale: context.isStale)
                 .activityBackgroundTint(ink)
                 .activitySystemActionForegroundColor(volt)
         } dynamicIsland: { context in
@@ -107,6 +107,7 @@ struct WorkoutActivityWidget: Widget {
             }
             .keylineTint(volt)
         }
+        .watchSmartStack()
     }
 }
 
@@ -174,5 +175,86 @@ struct LockScreenWorkoutView: View {
             }
         }
         .padding(16)
+    }
+}
+
+
+/// iOS 18+: also offer the Live Activity to Apple Watch's Smart Stack in the `.small` family (otherwise watchOS falls back
+/// to the Dynamic Island compact view — just an icon and "3/33"). Older iOS: unchanged.
+extension WidgetConfiguration {
+    func watchSmartStack() -> some WidgetConfiguration {
+        if #available(iOS 18.0, *) {
+            return self.supplementalActivityFamilies([.small])
+        } else {
+            return self
+        }
+    }
+}
+
+/// Picks the layout: the Watch Smart Stack (`.small`) gets a compact training/rest card, everything else the lock-screen view.
+struct ActivityContentView: View {
+    let attrs: WorkoutActivityAttributes
+    let state: WorkoutActivityAttributes.ContentState
+    let isStale: Bool
+
+    var body: some View {
+        if #available(iOS 18.0, *) {
+            FamilyAwareActivityView(attrs: attrs, state: state, isStale: isStale)
+        } else {
+            LockScreenWorkoutView(attrs: attrs, state: state, isStale: isStale)
+        }
+    }
+}
+
+@available(iOS 18.0, *)
+private struct FamilyAwareActivityView: View {
+    @Environment(\.activityFamily) private var family
+    let attrs: WorkoutActivityAttributes
+    let state: WorkoutActivityAttributes.ContentState
+    let isStale: Bool
+
+    var body: some View {
+        if family == .small {
+            WatchActivityView(attrs: attrs, state: state, isStale: isStale)
+        } else {
+            LockScreenWorkoutView(attrs: attrs, state: state, isStale: isStale)
+        }
+    }
+}
+
+/// Apple Watch Smart Stack card: exercise, set and weight × reps while training; the countdown and what's next while resting.
+private struct WatchActivityView: View {
+    let attrs: WorkoutActivityAttributes
+    let state: WorkoutActivityAttributes.ContentState
+    let isStale: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if isResting(state) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("REST").font(.system(size: 12, weight: .bold)).tracking(1).foregroundColor(paper.opacity(0.6))
+                    Spacer(minLength: 4)
+                    if isStale {
+                        Text("GO").font(.system(size: 26, weight: .heavy).width(.condensed)).foregroundColor(volt)
+                    } else {
+                        Text(timerInterval: restWindow(state), countsDown: true)
+                            .font(.system(size: 26, weight: .heavy).width(.condensed).monospacedDigit())
+                            .foregroundColor(volt).multilineTextAlignment(.trailing)
+                    }
+                }
+                Text(state.nextUp).font(.system(size: 13, weight: .medium)).foregroundColor(paper).lineLimit(2)
+            } else {
+                HStack {
+                    Text(attrs.dayName.uppercased()).font(.system(size: 11, weight: .bold)).tracking(0.8)
+                        .foregroundColor(paper.opacity(0.6)).lineLimit(1)
+                    Spacer(minLength: 4)
+                    Text("\(state.setsDone)/\(state.setsTotal)").font(.system(size: 11, weight: .bold).monospacedDigit()).foregroundColor(volt)
+                }
+                Text(state.exercise).font(.system(size: 16, weight: .heavy).width(.condensed)).foregroundColor(paper).lineLimit(1)
+                Text("\(state.setText) · \(state.detail)").font(.system(size: 13, weight: .semibold)).foregroundColor(volt).lineLimit(1)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .padding(.horizontal, 2)
     }
 }

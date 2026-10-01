@@ -13,7 +13,7 @@ import { PrefsProvider } from '@/lib/prefs';
 import { syncHealth } from '@/lib/health';
 import Tour from '@/components/Tour';
 import { hideSplash } from '@/lib/native';
-import { refreshWidget } from '@/lib/widget';
+import { refreshWidget, reconcileWorkoutActivity } from '@/lib/widget';
 
 // Reachable without signing in (App Store requires the privacy policy to be public).
 const PUBLIC = ['/login', '/privacy', '/terms', '/help'];
@@ -57,7 +57,8 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!session?.user.id) return;
     void refreshWidget(true);
-    const on = () => { void refreshWidget(document.visibilityState === 'hidden'); };
+    void reconcileWorkoutActivity();
+    const on = () => { void refreshWidget(document.visibilityState === 'hidden'); if (document.visibilityState === 'visible') void reconcileWorkoutActivity(); };
     document.addEventListener('visibilitychange', on);
     return () => document.removeEventListener('visibilitychange', on);
   }, [session?.user.id]);

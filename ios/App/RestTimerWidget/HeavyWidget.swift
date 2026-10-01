@@ -97,49 +97,69 @@ struct HeavyWidgetView: View {
     @Environment(\.widgetFamily) private var family
     let entry: HeavyEntry
 
+    private var isAccessory: Bool {
+        family == .accessoryRectangular || family == .accessoryCircular || family == .accessoryInline
+    }
+
     var body: some View {
-        Group {
-            if let s = entry.snapshot {
-                if family == .systemMedium {
-                    HStack(alignment: .top, spacing: 18) {
-                        todayColumn(s)
-                        weekColumn(s)
-                    }
-                } else {
+        if isAccessory {
+            accessoryContent(entry.snapshot).modifier(AccessoryBackground())   // Lock Screen: the system draws the look
+        } else {
+            homeContent.modifier(HeavyBackground())                          // Home Screen: our dark card
+        }
+    }
+
+    // MARK: Home Screen (small / medium)
+
+    @ViewBuilder private var homeContent: some View {
+        if let s = entry.snapshot {
+            if family == .systemMedium {
+                HStack(alignment: .top, spacing: 18) {
                     todayColumn(s)
+                    weekColumn(s)
                 }
             } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("HEAVY").font(.system(size: 11, weight: .bold)).tracking(1.2).foregroundColor(volt)
-                    Text("OPEN THE APP").font(.system(size: 24, weight: .heavy).width(.condensed)).foregroundColor(paper)
-                    Spacer(minLength: 0)
-                    Text("Open Heavy once to show your workout here.").font(.system(size: 12)).foregroundColor(paper.opacity(0.65))
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                todayColumn(s)
             }
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("HEAVY").font(.system(size: 11, weight: .bold)).tracking(1.2).foregroundColor(volt)
+                Text("OPEN THE APP").font(.system(size: 24, weight: .heavy).width(.condensed)).foregroundColor(paper)
+                Spacer(minLength: 0)
+                Text("Open Heavy once to show your workout here.").font(.system(size: 12)).foregroundColor(paper.opacity(0.65))
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .modifier(HeavyBackground())
+    }
+
+    private func eyebrow(_ s: HeavySnapshot) -> String {
+        if s.inProgress { return "IN PROGRESS" }
+        switch s.today.kind {
+        case "workout": return "TODAY"
+        case "rest": return "REST DAY"
+        default: return "HEAVY"
+        }
+    }
+
+    private func detail(_ s: HeavySnapshot) -> String {
+        let t = s.today
+        switch t.kind {
+        case "workout": return "\(t.exercises) exercises · \(t.sets) sets"
+        case "rest": return "Recover. \(s.weekWorkouts) workout\(s.weekWorkouts == 1 ? "" : "s") this week."
+        default: return "Open Heavy to choose a plan."
+        }
     }
 
     private func todayColumn(_ s: HeavySnapshot) -> some View {
-        let t = s.today
-        let eyebrow = s.inProgress ? "IN PROGRESS" : (t.kind == "workout" ? "TODAY" : (t.kind == "rest" ? "REST DAY" : "HEAVY"))
-        let detail: String = {
-            switch t.kind {
-            case "workout": return "\(t.exercises) exercises · \(t.sets) sets"
-            case "rest": return "Recover. \(s.weekWorkouts) workout\(s.weekWorkouts == 1 ? "" : "s") this week."
-            default: return "Open Heavy to choose a plan."
-            }
-        }()
-        return VStack(alignment: .leading, spacing: 4) {
-            Text(eyebrow).font(.system(size: 11, weight: .bold)).tracking(1.2).foregroundColor(volt)
-            Text(t.name.uppercased())
+        VStack(alignment: .leading, spacing: 4) {
+            Text(eyebrow(s)).font(.system(size: 11, weight: .bold)).tracking(1.2).foregroundColor(volt)
+            Text(s.today.name.uppercased())
                 .font(.system(size: family == .systemSmall ? 26 : 30, weight: .heavy).width(.condensed))
                 .foregroundColor(paper)
                 .lineLimit(3)
                 .minimumScaleFactor(0.7)
             Spacer(minLength: 0)
-            Text(detail).font(.system(size: 12, weight: .medium)).foregroundColor(paper.opacity(0.65)).lineLimit(2)
+            Text(detail(s)).font(.system(size: 12, weight: .medium)).foregroundColor(paper.opacity(0.65)).lineLimit(2)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -166,6 +186,65 @@ struct HeavyWidgetView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
+
+    // MARK: Lock Screen (inline / circular / rectangular)
+
+    @ViewBuilder private func accessoryContent(_ s: HeavySnapshot?) -> some View {
+        switch family {
+        case .accessoryInline:
+            if let s {
+                switch s.today.kind {
+                case "workout": Text("\(s.today.name) · \(s.today.sets) sets")
+                case "rest": Text("Rest day · \(s.weekWorkouts) this week")
+                default: Text("Open Heavy")
+                }
+            } else {
+                Text("Open Heavy")
+            }
+        case .accessoryCircular:
+            ZStack {
+                AccessoryWidgetBackground()
+                VStack(spacing: 0) {
+                    Text("\(s?.weekWorkouts ?? 0)").font(.system(size: 24, weight: .heavy).width(.condensed)).widgetAccentable()
+                    Text("THIS WK").font(.system(size: 8, weight: .semibold))
+                }
+            }
+        default: // accessoryRectangular
+            if let s {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(eyebrow(s)).font(.system(size: 11, weight: .bold)).widgetAccentable()
+                    Text(s.today.name.uppercased()).font(.system(size: 18, weight: .heavy).width(.condensed)).lineLimit(1)
+                    Text(detail(s)).font(.system(size: 11)).lineLimit(1)
+                    HStack(spacing: 4) {
+                        ForEach(Array(weekDots(s, now: entry.date).enumerated()), id: \.offset) { _, d in
+                            Circle()
+                                .fill(d.trained ? Color.primary : Color.clear)
+                                .overlay(Circle().stroke(Color.primary.opacity(d.isToday ? 1 : 0.45), lineWidth: 1))
+                                .frame(width: 8, height: 8)
+                        }
+                    }
+                    .padding(.top, 2)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("HEAVY").font(.system(size: 11, weight: .bold)).widgetAccentable()
+                    Text("Open the app once").font(.system(size: 14, weight: .semibold))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+}
+
+private struct AccessoryBackground: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 17.0, *) {
+            content.containerBackground(.clear, for: .widget)
+        } else {
+            content
+        }
+    }
 }
 
 struct HeavyTodayWidget: Widget {
@@ -175,6 +254,6 @@ struct HeavyTodayWidget: Widget {
         }
         .configurationDisplayName("Today")
         .description("Your next workout and your week at a glance.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular, .accessoryCircular, .accessoryInline])
     }
 }

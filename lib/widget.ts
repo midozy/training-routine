@@ -1,7 +1,8 @@
 // Home-screen widget bridge: hands a small snapshot (today's workout, this week) to the phone's shared storage and asks
 // iOS to redraw the widget. Only does anything inside the iOS app.
 import { registerPlugin } from '@capacitor/core';
-import { isNative } from './native';
+import { isNative, endWorkoutActivity } from './native';
+import { supabase } from './supabase';
 import { buildSnapshot } from './widgetSnapshot';
 
 type HeavyWidgetPlugin = { update(o: { json: string }): Promise<{ ok: boolean }> };
@@ -23,4 +24,13 @@ export async function refreshWidget(force = false): Promise<void> {
     lastJson = body;
     await HeavyWidget.update({ json: JSON.stringify(snap) });
   } catch { /* the widget simply keeps showing what it had */ }
+}
+
+/** If no workout is open (finished on another device, deleted, or the app was closed mid-workout and later finished), remove any leftover Live Activity. */
+export async function reconcileWorkoutActivity(): Promise<void> {
+  if (!isNative()) return;
+  try {
+    const { data } = await supabase.from('workout_sessions').select('id').is('finished_at', null).limit(1);
+    if (data && data.length === 0) await endWorkoutActivity();
+  } catch { /* leave it as it is */ }
 }

@@ -10,17 +10,18 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { KeepAwake } from '@capacitor-community/keep-awake';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
+import type { LiveState } from './liveState';
 
 export const isNative = () => Capacitor.isNativePlatform();
 
 const REST_ID = 4201;
 
-/** Lock-screen / Dynamic Island countdown (Live Activity). Native: ios/App/App/RestActivityPlugin.swift. */
-const RestActivity = registerPlugin<{
-  start(o: { startAt: number; endAt: number; nextUp: string }): Promise<{ started: boolean; reason?: string }>;
+/** Lock-screen / Dynamic Island Live Activity for the whole workout. Native: ios/App/App/RestActivityPlugin.swift (WorkoutActivityPlugin). */
+const WorkoutActivity = registerPlugin<{
+  sync(o: LiveState): Promise<{ started: boolean; reason?: string }>;
   end(): Promise<void>;
-  status(): Promise<{ enabled: boolean; activities: { id: string; state: string; endAt: number }[] }>;
-}>('RestActivity');
+  status(): Promise<{ enabled: boolean; activities: { id: string; state: string; phase: string; exercise: string }[] }>;
+}>('WorkoutActivity');
 
 export async function initNative() { /* status bar style is set by applyTheme() */ }
 
@@ -68,20 +69,18 @@ export function restAlertsEnabled(): boolean {
 }
 export async function setRestAlertsEnabled(on: boolean) {
   try { localStorage.setItem(ALERTS_KEY, on ? 'on' : 'off'); } catch {}
-  if (!on) await cancelRestAlert();
+  if (!on) { await cancelRestAlert(); await endWorkoutActivity(); }
 }
 
 /**
- * Rest on the lock screen: a live countdown (Live Activity) plus an alert when rest ends
- * (fires even if the phone is locked or the app is in the background). Calling it again
- * during the same rest (+15s / −15s) updates the countdown.
+ * Rest alert: a notification when rest ends (fires even if the phone is locked or the app is in the background).
+ * Calling it again during the same rest (+15s / −15s) replaces it. The countdown itself lives in the workout Live Activity.
  */
-export async function scheduleRestAlert(endAt: number, nextUp: string, startAt: number = Date.now()) {
+export async function scheduleRestAlert(endAt: number, nextUp: string) {
   if (!isNative()) return;
   if (!restAlertsEnabled()) return cancelRestAlert();
-  try { await RestActivity.start({ startAt, endAt, nextUp }); } catch (e) { console.warn('[rest] live activity failed:', (e as Error)?.message ?? e); }
   try {
-    await LocalNotifications.cancel({ notifications: [{ id: REST_ID }] }); // replace the pending alert, keep the countdown
+    await LocalNotifications.cancel({ notifications: [{ id: REST_ID }] });
     if (!(await ensureNotifyPermission())) return;
     await LocalNotifications.schedule({
       notifications: [{ id: REST_ID, title: 'Rest over — GO', body: nextUp, schedule: { at: new Date(endAt), allowWhileIdle: true } }],
@@ -91,8 +90,19 @@ export async function scheduleRestAlert(endAt: number, nextUp: string, startAt: 
 
 export async function cancelRestAlert() {
   if (!isNative()) return;
-  try { await RestActivity.end(); } catch {}
   try { await LocalNotifications.cancel({ notifications: [{ id: REST_ID }] }); } catch {}
+}
+
+/** Start the workout Live Activity, or update it with where you are now. Safe to call often. */
+export async function syncWorkoutActivity(s: LiveState) {
+  if (!isNative() || !restAlertsEnabled()) return;
+  try { await WorkoutActivity.sync(s); } catch (e) { console.warn('[live activity] failed:', (e as Error)?.message ?? e); }
+}
+
+/** Remove the Live Activity (workout finished or deleted). */
+export async function endWorkoutActivity() {
+  if (!isNative()) return;
+  try { await WorkoutActivity.end(); } catch {}
 }
 
 /** For the Profile screen: 'granted' | 'denied' | 'prompt' | 'web'. */

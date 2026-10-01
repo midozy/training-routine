@@ -8,7 +8,8 @@ import ExercisePicker from '@/components/ExercisePicker';
 import Icon from '@/components/Icon';
 import Tip from '@/components/Tip';
 import { usePrefs } from '@/lib/prefs';
-import { tap, success, keepScreenOn, scheduleRestAlert, cancelRestAlert } from '@/lib/native';
+import { tap, success, keepScreenOn, scheduleRestAlert, cancelRestAlert, syncWorkoutActivity, endWorkoutActivity } from '@/lib/native';
+import { liveState, type LiveState } from '@/lib/liveState';
 import { saveSessionToHealth } from '@/lib/health';
 import { resolveSessionId } from '@/lib/outbox';
 import { suggest, warmups, platesFor, prCheck, type SetRef } from '@/lib/training';
@@ -187,12 +188,39 @@ export default function Workout() {
       return () => clearTimeout(t);
     }
   }, [left, rest]);
-  useEffect(() => { if (rest) scheduleRestAlert(rest.endAt, rest.next, rest.endAt - rest.total * 1000); else cancelRestAlert(); }, [rest?.endAt]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { keepScreenOn(true); return () => { keepScreenOn(false); cancelRestAlert(); }; }, []);
+  // The rest-over alert (notification). The countdown itself is shown by the workout Live Activity (below).
+  useEffect(() => { if (rest) scheduleRestAlert(rest.endAt, rest.next); else cancelRestAlert(); }, [rest?.endAt]); // eslint-disable-line react-hooks/exhaustive-deps
+  const lastLive = useRef<LiveState | null>(null);
+  useEffect(() => {
+    keepScreenOn(true);
+    return () => {
+      keepScreenOn(false);
+      cancelRestAlert();
+      // Leaving the screen mid-rest: the countdown is gone, so put the lock screen back to "training". The activity itself stays until the workout is finished.
+      const l = lastLive.current;
+      if (l && l.phase === 'rest') void syncWorkoutActivity({ ...l, phase: 'train', restStart: undefined, restEnd: undefined, nextUp: undefined });
+    };
+  }, []);
 
   const x = exs[cur];
   const r = x ? rows[x.id] ?? [] : [];
   const row = r[sel];
+
+  // Lock screen / Dynamic Island: one Live Activity for the whole workout (exercise + set while training, countdown while resting).
+  const totalSets = exs.reduce((n, e) => n + (rows[e.id]?.length ?? 0), 0);
+  const totalDone = exs.reduce((n, e) => n + (rows[e.id]?.filter((z) => z.logged).length ?? 0), 0);
+  useEffect(() => {
+    if (!ready || !session || session.finished_at || !x) return;
+    const live = liveState({
+      dayName: session.day_name, startedAt: +new Date(session.started_at), exercise: effName(x),
+      setIndex: sel, setCount: r.length, weight: row?.weight ?? '', reps: row?.reps ?? '', units,
+      setsDone: totalDone, setsTotal: totalSets,
+      rest: rest ? { startAt: rest.endAt - rest.total * 1000, endAt: rest.endAt, next: rest.next } : null,
+    });
+    lastLive.current = live;
+    const t = setTimeout(() => { void syncWorkoutActivity(live); }, 150); // fold quick successive changes into one update
+    return () => clearTimeout(t);
+  }, [ready, session?.id, session?.finished_at, x?.id, sel, row?.weight, row?.reps, r.length, totalDone, totalSets, rest?.endAt, rest?.total, units]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const patch = useCallback((p: Partial<Row>) => {
     if (!x) return;
@@ -323,6 +351,7 @@ export default function Workout() {
     setSaving(true);
     success();
     await supabase.from('workout_sessions').update({ finished_at: new Date().toISOString(), notes: notes || null }).eq('id', sessionId);
+    void endWorkoutActivity();
     saveSessionToHealth(sessionId).catch(() => {}); // Apple Health write-back (iPhone app, if enabled)
     if (dayMeta && dayMeta.plan_id === settings?.active_plan_id) {
       const { data: all } = await supabase.from('plan_days').select('id').eq('plan_id', dayMeta.plan_id);
@@ -335,6 +364,7 @@ export default function Workout() {
   async function discard() {
     if (!confirm('Delete this workout and all its sets?')) return;
     await supabase.from('workout_sessions').delete().eq('id', sessionId);
+    void endWorkoutActivity();
     router.push('/');
   }
 

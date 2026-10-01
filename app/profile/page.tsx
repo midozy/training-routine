@@ -217,7 +217,7 @@ export default function ProfilePage() {
         <div className="row"><span className="flex-1">Week starts on<span className="block text-[13px] text-sub">{weekRangeLong((settings.week_start ?? 1) as WeekStart)}</span></span>
           <Segmented value={String(settings.week_start ?? 1)} options={[['1', 'Mon'], ['0', 'Sun'], ['6', 'Sat']]} onChange={(v) => save({ week_start: Number(v) as WeekStart })} /></div>
         <div className="row">
-          <span className="flex-1">Rest timer on lock screen<span className="block text-[13px] text-sub">Live countdown and an alert when rest ends</span></span>
+          <span className="flex-1">Workout on lock screen<span className="block text-[13px] text-sub">Your exercise and set, the rest countdown and an alert when rest ends</span></span>
           {notif === 'web' && <span className="text-[13px] text-sub">iPhone app only</span>}
           {notif === 'granted' && <Segmented value={alertsOn ? 'on' : 'off'} options={[['on', 'On'], ['off', 'Off']]} onChange={async (v) => { await setRestAlertsEnabled(v === 'on'); setAlertsOn(v === 'on'); }} />}
           {notif === 'prompt' && <button className="pill !bg-volt !text-[#111]" onClick={async () => { await requestNotify(); await setRestAlertsEnabled(true); setAlertsOn(true); setNotif(await notifyStatus()); }}>Turn on</button>}

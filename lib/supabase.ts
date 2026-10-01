@@ -5,6 +5,17 @@ import { heavyFetch } from './offline';
 export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://danzdvismbezkymgstfu.supabase.co';
 export const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_KEY || 'sb_publishable_kHaeEQBW1wGS8pdgJExqdw_Xlxd2afq';
 
+/** Public web address of the app (used for links in e-mails). Override with NEXT_PUBLIC_WEB_URL. */
+export const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL || 'https://training-routine-five.vercel.app';
+
+/**
+ * Where an e-mailed link (password reset, confirm e-mail) should bring the user back to. Inside the iPhone app the page address is
+ * capacitor://localhost, which a mail app can't open, so use the public web address. It must also be listed under
+ * Supabase -> Authentication -> URL Configuration -> Redirect URLs.
+ */
+export const authRedirect = (path: string) =>
+  `${typeof window !== 'undefined' && window.location.protocol.startsWith('http') ? window.location.origin : WEB_URL}${path}`;
+
 export const supabase = createClient(
   SUPABASE_URL,
   SUPABASE_KEY,

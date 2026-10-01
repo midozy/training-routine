@@ -68,8 +68,8 @@ Web: push to `main` (Vercel redeploys). iOS: `npm run ios:sync`, bump **Build** 
 1. **Plan content.** The two original plans are private to your account. Before bundling them for other users, confirm your purchase licence allows redistribution; otherwise new users start from the plan builder.
 2. **Exercise photos.** The GIFs come from free-exercise-db (Unlicense), but the photos' original source is unclear. Replace them with photos or illustrations you own or have licensed.
 3. **Plans for new users.** New accounts can create plans with the built-in editor (Plan → + New). Optionally add shared starter templates (`owner_id = null`).
-4. **Open sign-ups:** `update app_settings set value = 'true' where key = 'signups_open';`. Also turn on **email confirmation** in Supabase Auth settings; allowlisted accounts skip it today.
-5. **Supabase Auth:** enable *Leaked password protection*, set the Site URL, and add a password-reset flow.
+4. **Open sign-ups:** last step, after `docs/SUPABASE-HARDENING.md`: `update app_settings set value = 'true' where key = 'signups_open';`. Email confirmation is already on.
+5. **Supabase Auth:** password reset and "check your email" flows are built (`app/login`, `app/reset-password`, `app/email-confirmed`). Still to do in the dashboard: Site URL + redirect URLs, custom SMTP, leaked-password protection, templates. Full checklist: `docs/SUPABASE-HARDENING.md`.
 6. **Store listing:** app name, subtitle, screenshots (6.9″ iPhone), description, support URL, privacy "nutrition" labels (email + fitness data, not used for tracking), age rating, and a demo account for the reviewer.
 7. **Payments (optional):** any subscription must use Apple In-App Purchase.
 8. **Offline logging (recommended):** queue sets locally when the gym has no signal and sync them later.

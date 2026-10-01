@@ -7,5 +7,6 @@ class MainViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(HeavyHealthPlugin())
         bridge?.registerPluginInstance(WorkoutActivityPlugin())
         bridge?.registerPluginInstance(HeavyWidgetPlugin())
+        bridge?.registerPluginInstance(HeavyWatchPlugin())
     }
 }

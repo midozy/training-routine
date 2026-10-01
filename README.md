@@ -39,6 +39,34 @@ Heavy reads weight, body fat, lean mass, height, resting heart rate, daily steps
 - Data: `health_samples` (one row per sample, per day for steps/energy, per night for sleep), `bodyweight_logs.source`, and `workout_sessions.avg_hr / max_hr / active_kcal / health_workout_id`. Migration: `supabase/migrations/20260926_apple_health_import.sql`.
 - In Xcode, check **Signing & Capabilities** shows **HealthKit** for the App target (automatic signing registers it on the App ID). Turn it on in the app under Profile → Apple Health.
 
+### Apple Watch (rest timer + quick log)
+A paired Watch mirrors the rest countdown and lets you log the set you're on without pulling out your phone. It's the
+**HeavyWatch Watch App** target (source in `ios/App/HeavyWatch Watch App/`, a synced folder — new `.swift` files dropped
+in there are picked up automatically), embedded in the **App** target. Bundle ID `com.elsamman.heavy.watchkitapp`,
+minimum watchOS 10. Phone side: `ios/App/App/HeavyWatchPlugin.swift` (part of the App target).
+
+**Installing on your Watch:** run the **App** scheme on your iPhone as usual — the Watch app is embedded and installs
+with it (or via the Watch app on the iPhone → Available Apps → Install). For faster iteration, pick the
+**HeavyWatch Watch App** scheme with your Watch as the destination and Run ▶. Both targets use automatic signing with
+the same Team.
+
+**How it works:** the phone mirrors one JSON snapshot of "where the workout is right now" to the Watch over
+WatchConnectivity (`ios/App/App/HeavyWatchPlugin.swift` ↔ `lib/native.ts` `pushWatchContext`) every time the current
+exercise, set, or rest countdown changes — the same moment it updates the Live Activity. The Watch has two screens
+(swipe between them): **Rest** mirrors the lock-screen countdown with a haptic tap when rest starts and again when
+it ends; **Log** shows the current set with the same weight/reps the phone would prefill, adjustable with the
+Digital Crown and +/- buttons, and a **Log set** button. Logging on the Watch sends the set back to the phone via
+`transferUserInfo` (`WatchSessionManager.sendQuickLog` ↔ `onWatchQuickLog` in `lib/native.ts`), a queued delivery
+that the system retries on its own if the Watch is briefly out of Bluetooth range — the phone applies it exactly
+like a phone-side set (`doneSetWith` in `app/workout/Workout.tsx`), including the PR check and advancing to the
+next set or starting the rest timer. A Watch tap only lands if the phone hasn't already moved to a different set in
+the meantime (checked by session/exercise/set number); otherwise it's dropped silently rather than mislogging, and
+the Watch catches up to the phone's current set within about 150ms.
+
+Scope, for now: single exercise/set at a time, mirroring whatever the phone is on — there's no independent
+exercise picker or standalone (phone-less) workout on the Watch, and no Watch workout session for live heart
+rate (Health data is still pulled in after the fact, as above). A natural next step if that's wanted later.
+
 ### TestFlight (no cable, auto-updates, needs the paid membership)
 1. In **App Store Connect → Apps → +**, create the app with bundle ID `com.elsamman.heavy`. The name must be unique on the store; a working title is fine for now.
 2. In Xcode, set the device to **Any iOS Device (arm64)**, then **Product → Archive → Distribute App → App Store Connect → Upload**.

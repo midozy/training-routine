@@ -8,7 +8,10 @@ import ExercisePicker from '@/components/ExercisePicker';
 import Icon from '@/components/Icon';
 import Tip from '@/components/Tip';
 import { usePrefs } from '@/lib/prefs';
-import { tap, success, keepScreenOn, scheduleRestAlert, cancelRestAlert, syncWorkoutActivity, endWorkoutActivity } from '@/lib/native';
+import {
+  tap, success, keepScreenOn, scheduleRestAlert, cancelRestAlert, syncWorkoutActivity, endWorkoutActivity,
+  pushWatchContext, clearWatchContext, onWatchQuickLog, type WatchContext,
+} from '@/lib/native';
 import { liveState, type LiveState } from '@/lib/liveState';
 import { saveSessionToHealth } from '@/lib/health';
 import { resolveSessionId } from '@/lib/outbox';
@@ -218,9 +221,25 @@ export default function Workout() {
       rest: rest ? { startAt: rest.endAt - rest.total * 1000, endAt: rest.endAt, next: rest.next } : null,
     });
     lastLive.current = live;
-    const t = setTimeout(() => { void syncWorkoutActivity(live); }, 150); // fold quick successive changes into one update
+    const watchCtx: WatchContext = {
+      ...live, active: true, sessionId, planExerciseId: x.id, exerciseId: effId(x), setNumber: sel + 1, units,
+      suggestedWeight: row?.weight ?? '', suggestedReps: row?.reps ?? '',
+    };
+    const t = setTimeout(() => { void syncWorkoutActivity(live); void pushWatchContext(watchCtx); }, 150); // fold quick successive changes into one update
     return () => clearTimeout(t);
-  }, [ready, session?.id, session?.finished_at, x?.id, sel, row?.weight, row?.reps, r.length, totalDone, totalSets, rest?.endAt, rest?.total, units]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ready, session?.id, session?.finished_at, sessionId, x?.id, sel, row?.weight, row?.reps, r.length, totalDone, totalSets, rest?.endAt, rest?.total, units]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* ---------- Apple Watch: quick-log the current set from the wrist ---------- */
+  useEffect(() => {
+    if (!ready || !session || session.finished_at) return;
+    return onWatchQuickLog((log) => {
+      // Only apply it if the phone hasn't already moved on (the watch gets a fresh context within ~150ms of any
+      // change, so a stale tap just gets ignored here rather than mutating a set the user isn't looking at anymore).
+      if (log.sessionId !== sessionId || log.planExerciseId !== x?.id || log.setNumber !== sel + 1 || log.units !== units) return;
+      if (!log.reps) return;
+      void doneSetWith(toKg(log.weight), log.reps);
+    });
+  }, [ready, session?.finished_at, sessionId, x?.id, sel, units]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const patch = useCallback((p: Partial<Row>) => {
     if (!x) return;
@@ -248,8 +267,13 @@ export default function Workout() {
   }
 
   async function doneSet() {
+    if (!row) return;
+    await doneSetWith(toKg(Number(row.weight) || 0), Number(row.reps) || 0);
+  }
+
+  /** The actual "log this set and move on" — shared by the Done button and an Apple Watch quick-log for the same set. */
+  async function doneSetWith(weight: number, reps: number) {
     if (!x || !row) return;
-    const weight = toKg(Number(row.weight) || 0), reps = Number(row.reps) || 0;
     if (!reps) return;
     const { error } = await supabase.from('set_logs').upsert(
       { session_id: sessionId, plan_exercise_id: x.id, exercise_id: effId(x), set_number: sel + 1, weight_kg: weight, reps, rpe: row.rpe, note: row.note.trim() || null },
@@ -352,6 +376,7 @@ export default function Workout() {
     success();
     await supabase.from('workout_sessions').update({ finished_at: new Date().toISOString(), notes: notes || null }).eq('id', sessionId);
     void endWorkoutActivity();
+    void clearWatchContext();
     saveSessionToHealth(sessionId).catch(() => {}); // Apple Health write-back (iPhone app, if enabled)
     if (dayMeta && dayMeta.plan_id === settings?.active_plan_id) {
       const { data: all } = await supabase.from('plan_days').select('id').eq('plan_id', dayMeta.plan_id);
@@ -365,6 +390,7 @@ export default function Workout() {
     if (!confirm('Delete this workout and all its sets?')) return;
     await supabase.from('workout_sessions').delete().eq('id', sessionId);
     void endWorkoutActivity();
+    void clearWatchContext();
     router.push('/');
   }
 

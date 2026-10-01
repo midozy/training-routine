@@ -19,6 +19,8 @@
 		A1E0C0012F80000100AB0001 /* HeavyHealthPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E0C0022F80000100AB0001 /* HeavyHealthPlugin.swift */; };
 		A1E0C0032F80000100AB0001 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E0C0042F80000100AB0001 /* MainViewController.swift */; };
 		A1E0C0F12F80000100AB0001 /* HeavyWidgetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E0C0F22F80000100AB0001 /* HeavyWidgetPlugin.swift */; };
+		A1E0C0F32F80000100AB0001 /* HeavyWatchPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E0C0F42F80000100AB0001 /* HeavyWatchPlugin.swift */; };
+		AC2D99FE306EE33900279C71 /* HeavyWatch Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = AC2D99F4306EE33800279C71 /* HeavyWatch Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B2F0A0062F80000100AB0002 /* RestTimerWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F0A0022F80000100AB0002 /* RestTimerWidget.swift */; };
 		B2F0A0072F80000100AB0002 /* RestActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F0A0042F80000100AB0002 /* RestActivityAttributes.swift */; };
 		B2F0A0082F80000100AB0002 /* RestActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F0A0042F80000100AB0002 /* RestActivityAttributes.swift */; };
@@ -28,6 +30,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		AC2D99FC306EE33900279C71 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AC2D99F3306EE33800279C71;
+			remoteInfo = "HeavyWatch Watch App";
+		};
 		B2F0A0152F80000100AB0002 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
@@ -38,6 +47,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		AC2D9A02306EE33900279C71 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				AC2D99FE306EE33900279C71 /* HeavyWatch Watch App.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B2F0A0132F80000100AB0002 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -67,6 +87,8 @@
 		A1E0C0042F80000100AB0001 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		A1E0C0052F80000100AB0001 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		A1E0C0F22F80000100AB0001 /* HeavyWidgetPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeavyWidgetPlugin.swift; sourceTree = "<group>"; };
+		A1E0C0F42F80000100AB0001 /* HeavyWatchPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeavyWatchPlugin.swift; sourceTree = "<group>"; };
+		AC2D99F4306EE33800279C71 /* HeavyWatch Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "HeavyWatch Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2F0A0012F80000100AB0002 /* RestTimerWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RestTimerWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2F0A0022F80000100AB0002 /* RestTimerWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestTimerWidget.swift; sourceTree = "<group>"; };
 		B2F0A0032F80000100AB0002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -75,12 +97,23 @@
 		B2F0A0F22F80000100AB0002 /* HeavyWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeavyWidget.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		AC2D99F5306EE33800279C71 /* HeavyWatch Watch App */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "HeavyWatch Watch App"; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
 		504EC3011FED79650016851F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AC2D99F1306EE33800279C71 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -100,6 +133,7 @@
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
 				B2F0A00B2F80000100AB0002 /* RestTimerWidget */,
+				AC2D99F5306EE33800279C71 /* HeavyWatch Watch App */,
 				504EC3051FED79650016851F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -109,6 +143,7 @@
 			children = (
 				504EC3041FED79650016851F /* App.app */,
 				B2F0A0012F80000100AB0002 /* RestTimerWidget.appex */,
+				AC2D99F4306EE33800279C71 /* HeavyWatch Watch App.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -120,6 +155,7 @@
 				A1E0C0042F80000100AB0001 /* MainViewController.swift */,
 				A1E0C0022F80000100AB0001 /* HeavyHealthPlugin.swift */,
 				A1E0C0F22F80000100AB0001 /* HeavyWidgetPlugin.swift */,
+				A1E0C0F42F80000100AB0001 /* HeavyWatchPlugin.swift */,
 				A1E0C0052F80000100AB0001 /* App.entitlements */,
 				B2F0A0042F80000100AB0002 /* RestActivityAttributes.swift */,
 				B2F0A0052F80000100AB0002 /* RestActivityPlugin.swift */,
@@ -156,11 +192,13 @@
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
 				B2F0A0132F80000100AB0002 /* Embed Foundation Extensions */,
+				AC2D9A02306EE33900279C71 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				B2F0A0142F80000100AB0002 /* PBXTargetDependency */,
+				AC2D99FD306EE33900279C71 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -168,6 +206,28 @@
 			);
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
+			productType = "com.apple.product-type.application";
+		};
+		AC2D99F3306EE33800279C71 /* HeavyWatch Watch App */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AC2D99FF306EE33900279C71 /* Build configuration list for PBXNativeTarget "HeavyWatch Watch App" */;
+			buildPhases = (
+				AC2D99F0306EE33800279C71 /* Sources */,
+				AC2D99F1306EE33800279C71 /* Frameworks */,
+				AC2D99F2306EE33800279C71 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AC2D99F5306EE33800279C71 /* HeavyWatch Watch App */,
+			);
+			name = "HeavyWatch Watch App";
+			packageProductDependencies = (
+			);
+			productName = "HeavyWatch Watch App";
+			productReference = AC2D99F4306EE33800279C71 /* HeavyWatch Watch App.app */;
 			productType = "com.apple.product-type.application";
 		};
 		B2F0A00C2F80000100AB0002 /* RestTimerWidget */ = {
@@ -193,7 +253,7 @@
 		504EC2FC1FED79650016851F /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastSwiftUpdateCheck = 0920;
+				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 0920;
 				TargetAttributes = {
 					504EC3031FED79650016851F = {
@@ -205,6 +265,9 @@
 								enabled = 1;
 							};
 						};
+					};
+					AC2D99F3306EE33800279C71 = {
+						CreatedOnToolsVersion = 27.0;
 					};
 					B2F0A00C2F80000100AB0002 = {
 						CreatedOnToolsVersion = 27.0;
@@ -230,6 +293,7 @@
 			targets = (
 				504EC3031FED79650016851F /* App */,
 				B2F0A00C2F80000100AB0002 /* RestTimerWidget */,
+				AC2D99F3306EE33800279C71 /* HeavyWatch Watch App */,
 			);
 		};
 /* End PBXProject section */
@@ -245,6 +309,13 @@
 				50379B232058CBB4000EE86E /* capacitor.config.json in Resources */,
 				504EC30D1FED79650016851F /* Main.storyboard in Resources */,
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AC2D99F2306EE33800279C71 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -267,8 +338,16 @@
 				A1E0C0032F80000100AB0001 /* MainViewController.swift in Sources */,
 				A1E0C0012F80000100AB0001 /* HeavyHealthPlugin.swift in Sources */,
 				A1E0C0F12F80000100AB0001 /* HeavyWidgetPlugin.swift in Sources */,
+				A1E0C0F32F80000100AB0001 /* HeavyWatchPlugin.swift in Sources */,
 				B2F0A0082F80000100AB0002 /* RestActivityAttributes.swift in Sources */,
 				B2F0A0092F80000100AB0002 /* RestActivityPlugin.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AC2D99F0306EE33800279C71 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -285,6 +364,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		AC2D99FD306EE33900279C71 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AC2D99F3306EE33800279C71 /* HeavyWatch Watch App */;
+			targetProxy = AC2D99FC306EE33900279C71 /* PBXContainerItemProxy */;
+		};
 		B2F0A0142F80000100AB0002 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = B2F0A00C2F80000100AB0002 /* RestTimerWidget */;
@@ -469,6 +553,94 @@
 			};
 			name = Release;
 		};
+		AC2D9A00306EE33900279C71 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P59JWL8A4S;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = HeavyWatch;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.elsamman.heavy;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.elsamman.heavy.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		AC2D9A01306EE33900279C71 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P59JWL8A4S;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = HeavyWatch;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.elsamman.heavy;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MARKETING_VERSION = 1.0;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.elsamman.heavy.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 		B2F0A0102F80000100AB0002 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -540,6 +712,15 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AC2D99FF306EE33900279C71 /* Build configuration list for PBXNativeTarget "HeavyWatch Watch App" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AC2D9A00306EE33900279C71 /* Debug */,
+				AC2D9A01306EE33900279C71 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

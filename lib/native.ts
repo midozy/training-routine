@@ -25,6 +25,65 @@ const WorkoutActivity = registerPlugin<{
 
 export async function initNative() { /* status bar style is set by applyTheme() */ }
 
+/**
+ * Apple Watch companion: mirrors the workout (rest countdown + what to quick-log) to a paired Watch, and
+ * receives sets quick-logged from the wrist. Native: ios/App/App/HeavyWatchPlugin.swift (phone) and
+ * "ios/App/HeavyWatch Watch App/" (the Watch app target).
+ */
+const HeavyWatch = registerPlugin<{
+  isSupported(): Promise<{ supported: boolean; paired: boolean; appInstalled: boolean }>;
+  pushContext(o: Record<string, unknown>): Promise<void>;
+  clearContext(): Promise<void>;
+  addListener(eventName: 'quickLog', cb: (log: WatchQuickLog) => void): Promise<{ remove: () => Promise<void> }>;
+}>('HeavyWatch');
+
+/** Everything the Watch needs to show the rest timer and offer a quick-log for the current set. */
+export type WatchContext = LiveState & {
+  active: boolean;          // false clears the Watch's screen (workout finished / left)
+  sessionId: number;
+  planExerciseId: number;
+  exerciseId: number;
+  setNumber: number;        // 1-based — a quick-log from the Watch is only applied if this still matches
+  units: 'kg' | 'lb';
+  suggestedWeight: string;  // what the phone would prefill, in display units — the Watch starts from the same number
+  suggestedReps: string;
+};
+
+/** A set quick-logged on the Watch, as delivered to JS. */
+export type WatchQuickLog = {
+  sessionId: number; planExerciseId: number; exerciseId: number; setNumber: number;
+  weight: number; reps: number; units: 'kg' | 'lb'; clientId: string;
+};
+
+/** Mirror the workout to a paired Apple Watch. Safe to call often (debounce like syncWorkoutActivity); a no-op without a Watch. */
+export async function pushWatchContext(ctx: WatchContext) {
+  if (!isNative()) return;
+  try { await HeavyWatch.pushContext({ ...ctx, updatedAt: Date.now() }); } catch (e) { console.warn('[watch] push failed:', (e as Error)?.message ?? e); }
+}
+
+/** Workout finished or left: clear the Watch's screen. */
+export async function clearWatchContext() {
+  if (!isNative()) return;
+  try { await HeavyWatch.clearContext(); } catch {}
+}
+
+const seenWatchLogs = new Set<string>();
+
+/**
+ * Fires when a set is quick-logged from the Watch. `transferUserInfo` (the Watch-side transport) can redeliver
+ * on relaunch, so each `clientId` is applied at most once per app session. Returns an unsubscribe function.
+ */
+export function onWatchQuickLog(cb: (log: WatchQuickLog) => void): () => void {
+  if (!isNative()) return () => {};
+  const handle = HeavyWatch.addListener('quickLog', (log) => {
+    if (seenWatchLogs.has(log.clientId)) return;
+    seenWatchLogs.add(log.clientId);
+    if (seenWatchLogs.size > 200) { const first = seenWatchLogs.values().next().value; if (first) seenWatchLogs.delete(first); }
+    cb(log);
+  });
+  return () => { void handle.then((h) => h.remove()); };
+}
+
 /** Hide the launch screen as soon as the first real screen is ready (capacitor.config.ts keeps a timer as a safety net). */
 export async function hideSplash() {
   if (!isNative()) return;

@@ -44,7 +44,8 @@ public class HeavyWatchPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func pushContext(_ call: CAPPluginCall) {
         guard WCSession.isSupported() else { call.resolve(); return }
         let session = WCSession.default
-        guard session.activationState == .activated else { call.resolve(); return }
+        // No paired Watch, or the Heavy Watch app isn't on it: nothing to mirror — resolve quietly instead of erroring.
+        guard session.activationState == .activated, session.isPaired, session.isWatchAppInstalled else { call.resolve(); return }
         var ctx: [String: Any] = [:]
         for key in [
             "dayName", "exercise", "setText", "detail", "nextUp", "units", "suggestedWeight", "suggestedReps",
@@ -81,9 +82,10 @@ public class HeavyWatchPlugin: CAPPlugin, CAPBridgedPlugin {
 
     /// Workout finished or left: tell the Watch there is nothing to show or log.
     @objc func clearContext(_ call: CAPPluginCall) {
-        guard WCSession.isSupported(), WCSession.default.activationState == .activated else { call.resolve(); return }
+        let s = WCSession.default
+        guard WCSession.isSupported(), s.activationState == .activated, s.isPaired, s.isWatchAppInstalled else { call.resolve(); return }
         do {
-            try WCSession.default.updateApplicationContext(["active": false])
+            try s.updateApplicationContext(["active": false])
             call.resolve()
         } catch {
             call.reject(error.localizedDescription)

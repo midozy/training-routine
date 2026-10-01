@@ -1,12 +1,13 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Fragment, Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ExercisePicker from '@/components/ExercisePicker';
 import Icon from '@/components/Icon';
 import Tip from '@/components/Tip';
 import { supabase, type Exercise, type Plan, type PlanDay, type PlanExercise } from '@/lib/supabase';
 import { resolveId } from '@/lib/outbox';
+import { link, unlink, normalize, runOf } from '@/lib/superset';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -72,11 +73,28 @@ function Editor() {
   /* ---- exercises ---- */
   const dayExs = (dayId: number) => exs.filter((e) => e.plan_day_id === dayId);
   const addExercise = (dayId: number, e: Exercise) => run(() => supabase.from('plan_exercises').insert({
-    plan_day_id: dayId, position: dayExs(dayId).length, exercise_id: e.id, label: e.name, target_reps: [12, 12, 12], unit: 'reps', rest_seconds: 90, cue: null,
+    plan_day_id: dayId, position: dayExs(dayId).length, exercise_id: e.id, label: e.name, target_reps: [12, 12, 12], unit: 'reps', rest_seconds: 90, cue: null, superset_group: null,
   }));
-  const moveEx = (dayId: number, i: number, dir: number) => run(() => renumber('plan_exercises', move(dayExs(dayId), i, dir).map((e) => e.id)));
+  const setGroups = async (patches: Array<{ id: number; superset_group: number | null }>) => { for (const p of patches) await supabase.from('plan_exercises').update({ superset_group: p.superset_group }).eq('id', p.id); };
+  const moveEx = (dayId: number, i: number, dir: number) => run(async () => {
+    const moved = move(dayExs(dayId), i, dir);
+    await renumber('plan_exercises', moved.map((e) => e.id));
+    await setGroups(normalize(moved)); // a superset split by the move stops being one
+  });
+  const toggleLink = (dayId: number, j: number) => {
+    const list = dayExs(dayId);
+    const r = runOf(list, j);
+    const patches = r && j < r[1] ? unlink(list, j) : link(list, j);
+    if (patches === null) return alert('A superset can have at most 4 exercises.');
+    if (patches.length) run(() => setGroups(patches));
+  };
   const deleteEx = (e: PlanExercise) => confirm(`Remove “${e.label}” from this day? Logged sets are kept.`) &&
-    run(async () => { await supabase.from('plan_exercises').delete().eq('id', e.id); await renumber('plan_exercises', dayExs(e.plan_day_id).filter((x) => x.id !== e.id).map((x) => x.id)); });
+    run(async () => {
+      const rest = dayExs(e.plan_day_id).filter((x) => x.id !== e.id);
+      await supabase.from('plan_exercises').delete().eq('id', e.id);
+      await renumber('plan_exercises', rest.map((x) => x.id));
+      await setGroups(normalize(rest));
+    });
 
   if (!plan) return <div className="eyebrow pt-10 px-1">Loading</div>;
 
@@ -110,17 +128,28 @@ function Editor() {
               <div className="card p-4 text-sub text-[15px]">Rest day</div>
             ) : (
               <div className="group">
-                {list.map((e, j) => (
-                  <div key={e.id} className="row !py-2">
-                    <button className="flex-1 min-w-0 text-left" onClick={() => setEditing(e)}>
-                      <div className="font-medium truncate">{e.label}</div>
-                      <div className="text-[13px] text-sub truncate">{e.target_reps.length} × {e.target_reps.join('·')} {e.unit === 'steps' ? 'steps' : ''} · {e.rest_seconds}s rest{e.cue ? ' · cue' : ''}</div>
-                    </button>
-                    <IconBtn label="Move up" disabled={j === 0} onClick={() => moveEx(d.id, j, -1)}><Icon name="up" size={16} /></IconBtn>
-                    <IconBtn label="Move down" disabled={j === list.length - 1} onClick={() => moveEx(d.id, j, 1)}><Icon name="down" size={16} /></IconBtn>
-                    
-                  </div>
-                ))}
+                {list.map((e, j) => {
+                  const run = runOf(list, j);
+                  const linkedNext = !!run && j < run[1];
+                  return (
+                    <Fragment key={e.id}>
+                      <div className={`row !py-2 ${run ? 'border-l-4 border-volt' : ''}`}>
+                        <button className="flex-1 min-w-0 text-left" onClick={() => setEditing(e)}>
+                          <div className="font-medium truncate">{run && <span className="inline-grid place-items-center w-5 h-5 mr-2 rounded bg-volt text-[#111] text-[11px] font-bold align-[1px]">{String.fromCharCode(65 + j - run[0])}</span>}{e.label}</div>
+                          <div className="text-[13px] text-sub truncate">{e.target_reps.length} × {e.target_reps.join('·')} {e.unit === 'steps' ? 'steps' : ''} · {e.rest_seconds}s rest{e.cue ? ' · cue' : ''}</div>
+                        </button>
+                        <IconBtn label="Move up" disabled={j === 0} onClick={() => moveEx(d.id, j, -1)}><Icon name="up" size={16} /></IconBtn>
+                        <IconBtn label="Move down" disabled={j === list.length - 1} onClick={() => moveEx(d.id, j, 1)}><Icon name="down" size={16} /></IconBtn>
+                      </div>
+                      {j < list.length - 1 && (
+                        <button className={`row !py-1 !min-h-0 justify-center gap-2 text-[13px] font-semibold ${linkedNext ? 'bg-volt/25 text-ink' : 'text-sub'}`}
+                          aria-label={linkedNext ? 'Unlink superset' : 'Link as superset'} onClick={() => toggleLink(d.id, j)}>
+                          <Icon name="link" size={14} />{linkedNext ? 'Superset · tap to unlink' : 'Link as superset'}
+                        </button>
+                      )}
+                    </Fragment>
+                  );
+                })}
                 <button className="row text-ink font-semibold" onClick={() => setPicker({ dayId: d.id })}><Icon name="plus" size={18} />Add exercise</button>
               </div>
             )}

@@ -12,6 +12,7 @@ import { tap, success, keepScreenOn, scheduleRestAlert, cancelRestAlert } from '
 import { saveSessionToHealth } from '@/lib/health';
 import { resolveSessionId } from '@/lib/outbox';
 import { suggest, warmups, platesFor, prCheck, type SetRef } from '@/lib/training';
+import { nextTarget, runOf } from '@/lib/superset';
 import { DEFAULT_GEAR, loadGear, fmtWeight, type Gear } from '@/lib/gear';
 import { supabase, epley, fmtDate, type PlanExercise, type Session, type SetLog } from '@/lib/supabase';
 
@@ -238,17 +239,18 @@ export default function Workout() {
     setRows((all) => ({ ...all, [x.id]: all[x.id].map((z, k) => (k === sel ? { ...z, logged: true, touched: true } : z)) }));
     if (wasLogged) return; // editing an earlier set — stay put, no rest
 
-    let nextEx = cur, nextSet = list.findIndex((z) => !z.logged);
-    if (nextSet === -1) {
-      nextEx = exs.findIndex((e, i) => i > cur && rows[e.id].some((z) => !z.logged));
-      if (nextEx === -1) nextEx = exs.findIndex((e, i) => i !== cur && rows[e.id].some((z) => !z.logged));
-      nextSet = nextEx === -1 ? -1 : rows[exs[nextEx].id].findIndex((z) => !z.logged);
-    }
-    if (nextEx === -1) { setSheet(true); return; }
-    setCur(nextEx); setSel(nextSet);
-    const nx = exs[nextEx], nr = (nextEx === cur ? list : rows[nx.id])[nextSet];
-    const secs = x.rest_seconds !== 90 ? x.rest_seconds : settings?.default_rest_seconds ?? 90;
-    setRest({ endAt: Date.now() + secs * 1000, total: secs, next: `${effName(nx)} · Set ${nextSet + 1} — ${nr.weight || '0'} ${units} × ${nr.reps}` });
+    // Where next? A normal exercise: its next set, then the next exercise. A superset: straight on to the next member (no rest),
+    // rest once the round is complete. (The rule lives in lib/superset.ts and is tested.)
+    const open = (i: number) => (i === cur ? list : rows[exs[i].id]).findIndex((z) => !z.logged);
+    const tgt = nextTarget(exs, open, cur);
+    if (!tgt) { setSheet(true); return; }
+    setCur(tgt.ex); setSel(tgt.set);
+    const nx = exs[tgt.ex], nr = (tgt.ex === cur ? list : rows[nx.id])[tgt.set];
+    if (!tgt.rest) { flash(`Superset · now ${effName(nx)}`); return; }
+    const restOf = (e: PlanExercise) => (e.rest_seconds !== 90 ? e.rest_seconds : settings?.default_rest_seconds ?? 90);
+    const group = runOf(exs, cur);
+    const secs = group ? Math.max(...exs.slice(group[0], group[1] + 1).map(restOf)) : restOf(x); // a superset rests for the longest of its exercises
+    setRest({ endAt: Date.now() + secs * 1000, total: secs, next: `${effName(nx)} · Set ${tgt.set + 1} — ${nr.weight || '0'} ${units} × ${nr.reps}` });
   }
 
   /** Save a change to the selected set's effort or note (the set is already logged). */
@@ -346,6 +348,7 @@ export default function Workout() {
   const pr = sessionBest > 0 && best[exId] !== undefined && sessionBest > best[exId];
   const pv = prev[exId]?.filter(Boolean);
   const isReps = x?.unit !== 'steps';
+  const ss = x ? runOf(exs, cur) : null; // [first, last] index of this exercise's superset
   const equip = guideFor(name)?.equipment;
   const isBarbell = equip === 'Barbell';
   const shownWeight = row ? Number(row.weight) || 0 : 0;                       // in the display unit
@@ -380,6 +383,7 @@ export default function Workout() {
           <div className="px-4 pt-4">
             <div className="flex items-center gap-2">
               <span className="eyebrow">{pad(cur + 1)} / {pad(exs.length)} · {lib[exId]?.muscle ?? ''}</span>
+              {ss && <span className="bg-ink text-on-ink px-2 py-0.5 rounded-md font-display font-bold text-sm tracking-wide">SUPERSET {cur - ss[0] + 1}/{ss[1] - ss[0] + 1}</span>}
               {pr && <span className="bg-volt text-[#111] px-2 py-0.5 rounded-md font-display font-bold text-sm tracking-wide">NEW PR</span>}
             </div>
             <button onClick={() => setGuideOpen(true)} className="block text-left mt-2" aria-label={`How to do ${name}`}>
@@ -527,10 +531,11 @@ export default function Workout() {
                 <div className="group mt-4">
                   {exs.map((e, i) => {
                     const rr = rows[e.id] ?? []; const d = rr.filter((z) => z.logged).length; const complete = d === rr.length;
+                    const grp = runOf(exs, i);
                     return (
-                      <button key={e.id} onClick={() => goTo(i)} className={`row ${i === cur ? '!bg-volt/40' : ''}`}>
+                      <button key={e.id} onClick={() => goTo(i)} className={`row ${i === cur ? '!bg-volt/40' : ''} ${grp ? 'border-l-4 border-volt' : ''}`}>
                         <span className={`num text-lg w-7 ${complete ? '' : 'text-sub'}`}>{complete ? <Icon name="check" size={16} strokeWidth={3} /> : pad(i + 1)}</span>
-                        <span className={`flex-1 ${complete ? 'line-through decoration-2 text-sub' : ''}`}>{effName(e)}{swaps[e.id] && <Icon name="swap" size={13} className="inline ml-1.5 -mt-0.5" />}</span>
+                        <span className={`flex-1 ${complete ? 'line-through decoration-2 text-sub' : ''}`}>{grp && <span className="inline-grid place-items-center w-5 h-5 mr-2 rounded bg-volt text-[#111] text-[11px] font-bold align-[1px]">{String.fromCharCode(65 + i - grp[0])}</span>}{effName(e)}{swaps[e.id] && <Icon name="swap" size={13} className="inline ml-1.5 -mt-0.5" />}</span>
                         <span className="num text-lg">{d}/{rr.length}</span>
                       </button>
                     );

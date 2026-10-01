@@ -141,7 +141,7 @@ function copyContents(days: Row[], exs: Row[], srcId: number, dstId: number): Co
     for (const e of exs.filter((x) => x.plan_day_id === d.id).sort(byPos)) {
       const eid = tempId();
       const ecid = uuid();
-      const eb = { plan_day_id: id, position: e.position, exercise_id: e.exercise_id, label: e.label, target_reps: e.target_reps, unit: e.unit, cue: e.cue ?? null, rest_seconds: e.rest_seconds };
+      const eb = { plan_day_id: id, position: e.position, exercise_id: e.exercise_id, label: e.label, target_reps: e.target_reps, unit: e.unit, cue: e.cue ?? null, rest_seconds: e.rest_seconds, superset_group: e.superset_group ?? null };
       c.exRows.push({ id: eid, ...eb, client_id: ecid });
       c.exItems.push({ ...eb, client_id: ecid });
       c.exTemps[ecid] = eid;

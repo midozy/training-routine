@@ -899,6 +899,27 @@ await later('the filter that totals and charts use skips warm-ups, even on rows 
   });
 }
 
+console.log('\nsupersets offline');
+{
+  const { server, c } = await fresh3();
+  for (const id of [700, 701]) server.db.plan_exercises.find((e) => e.id === id).superset_group = 1;   // the starter's first two exercises form a superset
+  await off.kvSet('t:plan_exercises', structuredClone(server.db.plan_exercises));
+  server.mode.down = true;
+  const dup = await c.rpc('duplicate_plan', { src: 7, new_name: 'Superset copy' });
+  const days = (await c.from('plan_days').select('*').eq('plan_id', dup.data).order('position')).data;
+  const exs = (await c.from('plan_exercises').select('*').eq('plan_day_id', days[0].id).order('position')).data;
+  await later('Duplicate offline carries the superset across', async () => { assert.deepEqual(exs.map((e) => e.superset_group), [1, 1]); });
+  await c.from('plan_exercises').update({ superset_group: 2 }).eq('id', exs[1].id);                    // change the grouping offline, too
+  server.mode.down = false; const res = await ob.flush();
+  await later('synced: the copy has the grouping you left it with (and the original is untouched)', async () => {
+    assert.equal(res.blocked, null); assert.equal(pending(), 0);
+    const copy = server.db.plans.find((p) => p.owner_id === 'u1');
+    const day = server.db.plan_days.find((d) => d.plan_id === copy.id && d.position === 0);
+    assert.deepEqual(server.db.plan_exercises.filter((e) => e.plan_day_id === day.id).sort((a, b) => a.position - b.position).map((e) => e.superset_group), [1, 2]);
+    assert.deepEqual(server.db.plan_exercises.filter((e) => e.plan_day_id === 70).sort((a, b) => a.position - b.position).map((e) => e.superset_group), [1, 1]);
+  });
+}
+
 globalThis.fetch = realFetch;
 await off.clearLocal();
 console.log(`\n${n} tests passed`);

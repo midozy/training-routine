@@ -16,6 +16,7 @@ export type PlanDay = { id: number; plan_id: number; position: number; name: str
 export type PlanExercise = {
   id: number; plan_day_id: number; position: number; exercise_id: number; label: string;
   target_reps: number[]; unit: 'reps' | 'steps'; cue: string | null; rest_seconds: number;
+  superset_group: number | null; // same number as the neighbouring exercise(s) = a superset (see lib/superset.ts)
 };
 export type Settings = { user_id: string; active_plan_id: number | null; next_position: number; default_rest_seconds: number; units: 'kg' | 'lb'; theme: 'system' | 'light' | 'dark'; week_start: 0 | 1 | 6 };
 export type Profile = { user_id: string; display_name: string | null; avatar_path: string | null; height_cm: number | null; birth_date: string | null; training_since: string | null; goal: 'bulk' | 'cut' | 'maintain' | 'recomp' | null; target_weight_kg: number | null; target_body_fat_pct: number | null };

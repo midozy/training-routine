@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { PageHead, SectionLabel } from '@/components/Shell';
 import { usePrefs } from '@/lib/prefs';
-import { weekStartOf, weekRangeLong, type WeekStart } from '@/lib/week';
+import { weekStreak, weekRangeLong, type WeekStart } from '@/lib/week';
 import { notifyStatus, requestNotify, isNative, restAlertsEnabled, setRestAlertsEnabled } from '@/lib/native';
 import { connectHealth, disconnectHealth, getHealthPrefs, healthAvailable, setWriteWorkouts, syncHealth, type HealthPrefs, type SyncResult } from '@/lib/health';
 import { supabase, fetchAll, epley, type Profile } from '@/lib/supabase';
@@ -132,16 +132,7 @@ export default function ProfilePage() {
     return Math.max(0, Math.min(100, ((stats.bwLast - stats.bwFirst) / (target - stats.bwFirst)) * 100));
   }, [stats, target]);
   // Streak = consecutive weeks (per the user's week start) with at least one finished workout; this week counts if it already has one.
-  const streak = useMemo(() => {
-    if (!stats) return 0;
-    const ws = (settings?.week_start ?? 1) as WeekStart;
-    const weeks = new Set(stats.doneAt.map((t) => weekStartOf(new Date(t), ws).getTime()));
-    const back = (t: number) => { const d = new Date(t); d.setDate(d.getDate() - 7); return d.getTime(); }; // DST-safe
-    let n = 0; let k = weekStartOf(new Date(), ws).getTime();
-    if (!weeks.has(k)) k = back(k);
-    while (weeks.has(k)) { n++; k = back(k); }
-    return n;
-  }, [stats, settings?.week_start]);
+  const streak = useMemo(() => (stats ? weekStreak(stats.doneAt, (settings?.week_start ?? 1) as WeekStart) : 0), [stats, settings?.week_start]);
 
   if (!profile || !settings) return <div className="eyebrow pt-10 px-1">Loading</div>;
 

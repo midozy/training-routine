@@ -13,6 +13,7 @@ import { PrefsProvider } from '@/lib/prefs';
 import { syncHealth } from '@/lib/health';
 import Tour from '@/components/Tour';
 import { hideSplash } from '@/lib/native';
+import { refreshWidget } from '@/lib/widget';
 
 // Reachable without signing in (App Store requires the privacy policy to be public).
 const PUBLIC = ['/login', '/privacy', '/terms', '/help'];
@@ -51,6 +52,15 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
   // Keep the copy saved on the phone fresh whenever a signed-in user is present and online.
   useEffect(() => { if (session?.user.id) void pullAll(true); }, [session?.user.id]);
+
+  // Keep the home-screen widget current: when you open the app, and again when you leave it (so it is right when you see your Home Screen).
+  useEffect(() => {
+    if (!session?.user.id) return;
+    void refreshWidget(true);
+    const on = () => { void refreshWidget(document.visibilityState === 'hidden'); };
+    document.addEventListener('visibilitychange', on);
+    return () => document.removeEventListener('visibilitychange', on);
+  }, [session?.user.id]);
 
   // Apple Health: import on open and on every return to the foreground (throttled inside).
   useEffect(() => {

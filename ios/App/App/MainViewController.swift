@@ -6,5 +6,6 @@ class MainViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(HeavyHealthPlugin())
         bridge?.registerPluginInstance(RestActivityPlugin())
+        bridge?.registerPluginInstance(HeavyWidgetPlugin())
     }
 }

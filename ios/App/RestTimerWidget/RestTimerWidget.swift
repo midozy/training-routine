@@ -6,6 +6,7 @@ import ActivityKit
 struct RestTimerWidgetBundle: WidgetBundle {
     var body: some Widget {
         RestActivityWidget()
+        HeavyTodayWidget()
     }
 }
 

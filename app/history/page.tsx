@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { PageHead } from '@/components/Shell';
+import TrainingCalendar from '@/components/TrainingCalendar';
+import type { WeekStart } from '@/lib/week';
 import { usePrefs } from '@/lib/prefs';
 import { supabase, fetchAll, type Session } from '@/lib/supabase';
 
@@ -37,6 +39,7 @@ export default function History() {
     <div>
       <PageHead eyebrow={`${rows.filter((r) => r.finished_at).length} sessions logged`} title="History" />
       {rows.length === 0 && <div className="card p-6 text-sub">Your workouts appear here after you finish your first one.</div>}
+      {rows.length > 0 && <TrainingCalendar rows={rows} weekStart={(settings.week_start ?? 1) as WeekStart} />}
       {Object.entries(byMonth).map(([month, list]) => (
         <section key={month} className="mb-6">
           <div className="flex items-baseline justify-between px-4 mb-2">

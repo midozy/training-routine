@@ -18,12 +18,38 @@
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
 		A1E0C0012F80000100AB0001 /* HeavyHealthPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E0C0022F80000100AB0001 /* HeavyHealthPlugin.swift */; };
 		A1E0C0032F80000100AB0001 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E0C0042F80000100AB0001 /* MainViewController.swift */; };
+		A1E0C0F12F80000100AB0001 /* HeavyWidgetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E0C0F22F80000100AB0001 /* HeavyWidgetPlugin.swift */; };
 		B2F0A0062F80000100AB0002 /* RestTimerWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F0A0022F80000100AB0002 /* RestTimerWidget.swift */; };
 		B2F0A0072F80000100AB0002 /* RestActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F0A0042F80000100AB0002 /* RestActivityAttributes.swift */; };
 		B2F0A0082F80000100AB0002 /* RestActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F0A0042F80000100AB0002 /* RestActivityAttributes.swift */; };
 		B2F0A0092F80000100AB0002 /* RestActivityPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F0A0052F80000100AB0002 /* RestActivityPlugin.swift */; };
 		B2F0A00A2F80000100AB0002 /* RestTimerWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B2F0A0012F80000100AB0002 /* RestTimerWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B2F0A0F12F80000100AB0002 /* HeavyWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F0A0F22F80000100AB0002 /* HeavyWidget.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B2F0A0152F80000100AB0002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B2F0A00C2F80000100AB0002;
+			remoteInfo = RestTimerWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		B2F0A0132F80000100AB0002 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				B2F0A00A2F80000100AB0002 /* RestTimerWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
@@ -40,11 +66,13 @@
 		A1E0C0022F80000100AB0001 /* HeavyHealthPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeavyHealthPlugin.swift; sourceTree = "<group>"; };
 		A1E0C0042F80000100AB0001 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		A1E0C0052F80000100AB0001 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
+		A1E0C0F22F80000100AB0001 /* HeavyWidgetPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeavyWidgetPlugin.swift; sourceTree = "<group>"; };
 		B2F0A0012F80000100AB0002 /* RestTimerWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RestTimerWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2F0A0022F80000100AB0002 /* RestTimerWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestTimerWidget.swift; sourceTree = "<group>"; };
 		B2F0A0032F80000100AB0002 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B2F0A0042F80000100AB0002 /* RestActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestActivityAttributes.swift; sourceTree = "<group>"; };
 		B2F0A0052F80000100AB0002 /* RestActivityPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestActivityPlugin.swift; sourceTree = "<group>"; };
+		B2F0A0F22F80000100AB0002 /* HeavyWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeavyWidget.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,6 +119,7 @@
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
 				A1E0C0042F80000100AB0001 /* MainViewController.swift */,
 				A1E0C0022F80000100AB0001 /* HeavyHealthPlugin.swift */,
+				A1E0C0F22F80000100AB0001 /* HeavyWidgetPlugin.swift */,
 				A1E0C0052F80000100AB0001 /* App.entitlements */,
 				B2F0A0042F80000100AB0002 /* RestActivityAttributes.swift */,
 				B2F0A0052F80000100AB0002 /* RestActivityPlugin.swift */,
@@ -110,6 +139,7 @@
 			isa = PBXGroup;
 			children = (
 				B2F0A0022F80000100AB0002 /* RestTimerWidget.swift */,
+				B2F0A0F22F80000100AB0002 /* HeavyWidget.swift */,
 				B2F0A0032F80000100AB0002 /* Info.plist */,
 			);
 			path = RestTimerWidget;
@@ -166,10 +196,6 @@
 				LastSwiftUpdateCheck = 0920;
 				LastUpgradeCheck = 0920;
 				TargetAttributes = {
-					B2F0A00C2F80000100AB0002 = {
-						CreatedOnToolsVersion = 27.0;
-						ProvisioningStyle = Automatic;
-					};
 					504EC3031FED79650016851F = {
 						CreatedOnToolsVersion = 9.2;
 						LastSwiftMigration = 1100;
@@ -179,6 +205,10 @@
 								enabled = 1;
 							};
 						};
+					};
+					B2F0A00C2F80000100AB0002 = {
+						CreatedOnToolsVersion = 27.0;
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -236,6 +266,7 @@
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				A1E0C0032F80000100AB0001 /* MainViewController.swift in Sources */,
 				A1E0C0012F80000100AB0001 /* HeavyHealthPlugin.swift in Sources */,
+				A1E0C0F12F80000100AB0001 /* HeavyWidgetPlugin.swift in Sources */,
 				B2F0A0082F80000100AB0002 /* RestActivityAttributes.swift in Sources */,
 				B2F0A0092F80000100AB0002 /* RestActivityPlugin.swift in Sources */,
 			);
@@ -246,35 +277,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				B2F0A0062F80000100AB0002 /* RestTimerWidget.swift in Sources */,
+				B2F0A0F12F80000100AB0002 /* HeavyWidget.swift in Sources */,
 				B2F0A0072F80000100AB0002 /* RestActivityAttributes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		B2F0A0132F80000100AB0002 /* Embed Foundation Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				B2F0A00A2F80000100AB0002 /* RestTimerWidget.appex in Embed Foundation Extensions */,
-			);
-			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
-/* Begin PBXContainerItemProxy section */
-		B2F0A0152F80000100AB0002 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = B2F0A00C2F80000100AB0002;
-			remoteInfo = RestTimerWidget;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXTargetDependency section */
 		B2F0A0142F80000100AB0002 /* PBXTargetDependency */ = {
@@ -465,10 +473,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = RestTimerWidget/RestTimerWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				ENABLE_DEBUG_DYLIB = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = P59JWL8A4S;
+				ENABLE_DEBUG_DYLIB = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = RestTimerWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
@@ -491,10 +500,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = RestTimerWidget/RestTimerWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				ENABLE_DEBUG_DYLIB = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = P59JWL8A4S;
+				ENABLE_DEBUG_DYLIB = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = RestTimerWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.2;

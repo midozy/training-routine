@@ -74,6 +74,8 @@ rate (Health data is still pulled in after the fact, as above). A natural next s
 4. Install the **TestFlight** app on the iPhone and accept the invite.
 
 ### Shipping an update
+Versioning: see `CHANGELOG.md`. For a release, bump `package.json` (`npm version X.Y.Z --no-git-tag-version`) and the Xcode `MARKETING_VERSION` (and build number), add a changelog entry, commit, then `git tag -a vX.Y.Z -m "..."` and `git push origin main --tags`.
+
 Web: push to `main` (Vercel redeploys). iOS: `npm run ios:sync`, bump **Build** in Xcode, then Archive → Upload again. TestFlight builds expire after 90 days.
 
 ---

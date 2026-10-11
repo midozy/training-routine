@@ -66,6 +66,53 @@ export function setWriteWorkouts(on: boolean) {
   setHealthPrefs({ writeWorkouts: on, ...(on ? { writeSince: new Date().toISOString() } : {}) });
 }
 
+
+/* ---------- Session end clamp ---------- */
+/** A session idle this long after its last logged set is treated as abandoned, not "still training". */
+export const MAX_IDLE_MS = 90 * 60e3;
+const TAIL_MS = 5 * 60e3; // time allowed after the last set (cool-down, notes)
+const MAX_EMPTY_MS = 3 * 3600e3;
+
+/**
+ * The real end of a session. If the workout was left open (phone put down, app never closed),
+ * `finishedAt` can be hours or days after the last set; use the last set plus a short tail instead.
+ * Returns null when there is nothing trustworthy to report (no sets and an implausibly long window).
+ */
+export function effectiveEnd(startedAt: string, finishedAt: string, lastSetAt: string | null): string | null {
+  const start = new Date(startedAt).getTime(), fin = new Date(finishedAt).getTime();
+  if (!(fin > start)) return null;
+  const last = lastSetAt ? new Date(lastSetAt).getTime() : NaN;
+  if (Number.isNaN(last)) return fin - start > MAX_EMPTY_MS ? null : finishedAt;
+  if (fin - last <= MAX_IDLE_MS) return finishedAt;
+  return new Date(Math.min(fin, Math.max(last, start) + TAIL_MS)).toISOString();
+}
+
+export async function lastSetTime(sessionId: number): Promise<string | null> {
+  const { data } = await supabase.from('set_logs').select('logged_at').eq('session_id', sessionId).order('logged_at', { ascending: false }).limit(1);
+  return data?.[0]?.logged_at ?? null;
+}
+
+const STALE_MS = 4 * 3600e3; // no set logged for this long: the session was abandoned
+
+/**
+ * Closes workouts that were left open. Ends each at its last set (+ tail); a session with no sets is deleted.
+ * Runs on app open and on every return to the foreground, before the Health sync writes workouts back.
+ */
+export async function closeStaleSessions(): Promise<number> {
+  const { data } = await supabase.from('workout_sessions').select('id, started_at').is('finished_at', null).limit(10);
+  let n = 0;
+  for (const s of data ?? []) {
+    const last = await lastSetTime(s.id);
+    const lastAt = new Date(last ?? s.started_at).getTime();
+    if (Date.now() - lastAt < STALE_MS) continue;
+    if (!last) { await supabase.from('workout_sessions').delete().eq('id', s.id); n++; continue; }
+    const end = effectiveEnd(s.started_at, new Date().toISOString(), last) ?? new Date(lastAt + TAIL_MS).toISOString();
+    await supabase.from('workout_sessions').update({ finished_at: end }).eq('id', s.id);
+    n++;
+  }
+  return n;
+}
+
 /* ---------- Sync ---------- */
 export type SyncResult = { ok: boolean; skipped?: boolean; error?: string; counts?: Record<string, number> };
 
@@ -233,9 +280,11 @@ async function backfillWorkouts(since: string): Promise<number> {
 }
 
 async function writeWorkout(s: { id: number; day_name: string; started_at: string; finished_at: string | null }): Promise<boolean> {
-  if (!s.finished_at || new Date(s.finished_at) <= new Date(s.started_at)) return false;
+  if (!s.finished_at) return false;
+  const end = effectiveEnd(s.started_at, s.finished_at, await lastSetTime(s.id));
+  if (!end) return false; // no sets and an absurd window: don't pollute Health
   try {
-    const r = await HeavyHealth.saveWorkout({ startDate: s.started_at, endDate: s.finished_at, externalId: `heavy-session-${s.id}`, name: s.day_name });
+    const r = await HeavyHealth.saveWorkout({ startDate: s.started_at, endDate: end, externalId: `heavy-session-${s.id}`, name: s.day_name });
     await supabase.from('workout_sessions').update({ health_workout_id: r.id }).eq('id', s.id);
     return !r.existed;
   } catch { return false; } // write access denied or Health unavailable: skip quietly

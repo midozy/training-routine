@@ -10,7 +10,7 @@ import { pullAll, startSync } from '@/lib/sync';
 import { clearLocal } from '@/lib/offline';
 import OfflineBanner from '@/components/OfflineBanner';
 import { PrefsProvider } from '@/lib/prefs';
-import { syncHealth } from '@/lib/health';
+import { syncHealth, closeStaleSessions } from '@/lib/health';
 import Tour from '@/components/Tour';
 import { hideSplash } from '@/lib/native';
 import { refreshWidget, reconcileWorkoutActivity } from '@/lib/widget';
@@ -67,8 +67,13 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   // Apple Health: import on open and on every return to the foreground (throttled inside).
   useEffect(() => {
     if (!session) return;
-    syncHealth();
-    const onVis = () => document.visibilityState === 'visible' && syncHealth();
+    const run = async () => {
+      if (document.visibilityState !== 'visible') return;
+      try { if (await closeStaleSessions()) await reconcileWorkoutActivity(); } catch {}
+      void syncHealth();
+    };
+    void run();
+    const onVis = () => void run();
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
   }, [session]);

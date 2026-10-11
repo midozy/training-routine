@@ -13,7 +13,7 @@ import {
   pushWatchContext, clearWatchContext, onWatchQuickLog, type WatchContext,
 } from '@/lib/native';
 import { liveState, type LiveState } from '@/lib/liveState';
-import { saveSessionToHealth } from '@/lib/health';
+import { saveSessionToHealth, effectiveEnd, lastSetTime } from '@/lib/health';
 import { resolveSessionId } from '@/lib/outbox';
 import { suggest, warmups, platesFor, prCheck, type SetRef } from '@/lib/training';
 import { nextTarget, runOf } from '@/lib/superset';
@@ -380,7 +380,10 @@ export default function Workout() {
   async function finish() {
     setSaving(true);
     success();
-    await supabase.from('workout_sessions').update({ finished_at: new Date().toISOString(), notes: notes || null }).eq('id', sessionId);
+    const now = new Date().toISOString();
+    // A workout left open for hours/days must not count as one long session: end it at the last set.
+    const end = (session && effectiveEnd(session.started_at, now, await lastSetTime(sessionId))) || now;
+    await supabase.from('workout_sessions').update({ finished_at: end, notes: notes || null }).eq('id', sessionId);
     void endWorkoutActivity();
     void clearWatchContext();
     saveSessionToHealth(sessionId).catch(() => {}); // Apple Health write-back (iPhone app, if enabled)
